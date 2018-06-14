@@ -1,0 +1,26 @@
+#!/bin/bash
+# This script will help automate the creation of Elastalert Rules.
+# Author: Bryant Treacle
+# Date: 6/14/2018
+
+echo "This script will help automate the creation of Elastalert Rules.  Please choose"
+echo "the rule you want to create."
+echo "For Cardinality rules: Press 1"
+
+
+read userselect
+
+if [ $userselect = "1" ] ; then
+	echo "The Cardinality rule rule matches when a the total number of unique values for a certain field within a time frame is higher or lower than a threshold."
+	sleep 2	
+	echo "Please complete options"
+	echo "What do you want to name the rule?"
+		read rulename
+	echo "What elasticsearch index do you want to search?"
+	echo "Below are the default Index Patterns for Security Onion"
+	echo "*:logstash-bro*"
+	echo "*:logstash-beats*
+	echo "*:elastalert_status*"
+		read indexname
+	echo "
+	
