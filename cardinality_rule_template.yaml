@@ -1,0 +1,52 @@
+# Alert when the rate of events exceeds a threshold
+
+es_host: elasticsearch
+es_port: 9200
+
+# (Required)
+# Index to search, wildcard supported
+index: "index-placeholder"
+
+# (Required)
+# Rule name, must be unique
+name: name-placeholder
+
+# (Required)
+# Type of alert.
+# the frequency rule type alerts when num_events events occur with timeframe time
+type: cardinality
+
+# (Required, cardinality specific)
+# Count the number of unique values for this field
+cardinality_field: cardinality-field-placeholder
+
+# (Required, frequency specific)
+# Alert when there is less than X unique values
+min_cardinality: min_cardinality-placeholder
+
+# (Required, frequency specific)
+# Alert when there is more than X unique values
+max_cardinality: max_cardinality-placeholder
+
+# (Required, frequency specific)
+# The cardinality is defined as the number of unique values for the most recent 4 hours
+timeframe:
+  hours: timeframe-placeholder
+
+# (Required)
+# A list of Elasticsearch filters used for find events
+# These filters are joined with AND and nested in a filtered query
+# For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
+filter:
+- wildcard:
+    event_type: "*"
+
+# (Required)
+# The alert is use when a match is found
+alert:
+- "alert-placeholder"
+
+# (required, email specific)
+# a list of email addresses to send alerts to
+alert-option-placeholder:
+- "alert-option-value-placeholder"
