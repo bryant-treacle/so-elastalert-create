@@ -38,9 +38,8 @@ timeframe:
 # These filters are joined with AND and nested in a filtered query
 # For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
 filter:
-- wildcard:
-    event_type: "*"
-
+- filter-type-placeholder:
+    field-type-placeholder: "field-value-placeholder"
 # (Required)
 # The alert is use when a match is found
 alert:

@@ -80,6 +80,39 @@ if [ $userselect = "1" ] ; then
 		read emailaddress
 	fi
     echo ""
+    echo "By default this script will use a wildcard seach that will include all logs for the index choosen above."
+    echo "Would you like to use a specific filter? (Y/N)"
+	read filteroption
+
+	if [ ${filteroption,,} = "y" ] ; then
+	    echo "This script will allow you to generate basic filters.  For complex filters visit https://elastalert.readthedocs.io/en/latest/recipes/writing_filters.html"
+	    echo ""
+	    echo "Term: Allows you to match a value in a field.  For example you can select the field source_ip and the value 192.168.1.1"
+	    echo "or choose a specific logtype you want the rule to apply to ie. field_type: event_type and the field_value bro_http"
+	    echo ""
+	    echo "Wildcard: Allows you to use the wildcard * in the field_value.  For example field_type: useragent and field_value: *Mozilla* "
+	    echo ""
+            echo "Please choose from the following filter types."
+	    echo ""
+	    echo "term or wildcard"
+		read filtertype
+
+		if [ ${filtertype,,} = "term" ] ; then
+		    echo "What field do you want to use?"
+			read fieldtype
+		    echo "What is the value for the field."
+			read fieldvalue
+		elif [ ${filtertype,,} = "wildcard" ] ; then
+		    echo "What field do you want to use?"
+                        read fieldtype
+                    echo "What is the value for the field."
+                        read fieldvalue
+		fi
+	else
+	filtertype="wildcard"
+	fieldtype="event_type"
+	fieldvalue="*"
+	fi
     echo ""
     echo "below are the following options that will be configured:"
     echo "    Rule Name: $rulename"
@@ -90,6 +123,9 @@ if [ $userselect = "1" ] ; then
     echo "    Timeframe: $timeframe"
     echo "    Alert option: $alertoption"
     echo "    Email Address: $emailaddress"
+    echo "    Filter Type: $filtertype"
+    echo "    Field Type: $fieldtype"
+    echo "    Field Value: $fieldvalue"
     echo ""
     echo "Would you like to proceed? (Y/N)"
 	read buildrule
@@ -141,23 +177,55 @@ if [ $userselect = "1" ] ; then
             	    echo "to send emails."
                 read emailaddress
        		     fi
-    	    echo ""
-    	    echo ""
-    	    echo "Below are the following options that will be configured:"
-    	    echo "    Rule Name: $rulename"
+	    echo ""
+    	    echo "By default this script will use a wildcard seach that will include all logs for the index choosen above."
+    	    echo "Would you like to use a specific filter? (Y/N)"
+        	read filteroption
+
+        	if [ ${filteroption,,} = "y" ] ; then
+            	    echo "This script will allow you to generate basic filters.  For complex filters visit https://elastalert.readthedocs.io/en/latest/recipes/writing_filters.html"
+            	    echo ""
+            	    echo "Term: Allows you to match a value in a field.  For example you can select the field source_ip and the value 192.168.1.1"
+            	    echo "or choose a specific logtype you want the rule to apply to ie. field_type: event_type and the field_value bro_http"
+            	    echo ""
+            	    echo "Wildcard: Allows you to use the wildcard * in the field_value.  For example field_type: useragent and field_value: *Mozilla* "
+            	    echo ""
+            	    echo "Please choose from the following filter types."
+            	    echo ""
+            	    echo "term or wildcard"
+                	read filtertype
+
+	                if [ ${filtertype,,} = "term" ] ; then
+	                    echo "What field do you want to use?"
+                            read fieldtype
+                            echo "What is the value for the field."
+                            read fieldvalue
+                	elif [ ${filtertype,,} = "wildcard" ] ; then
+                    	    echo "What field do you want to use?"
+                            read fieldtype
+                            echo "What is the value for the field."
+                            read fieldvalue
+                	fi
+                fi
+	    echo ""
+	    echo "below are the following options that will be configured:"
+            echo "    Rule Name: $rulename"
     	    echo "    Index: $indexname"
     	    echo "    Cardinality Field: $cardinalityfield"
     	    echo "    Min Cardinality: $mincardinality"
-	    echo "    Max Cardinality: $maxcardinality"
+    	    echo "    Max Cardinality: $maxcardinality"
     	    echo "    Timeframe: $timeframe"
     	    echo "    Alert option: $alertoption"
     	    echo "    Email Address: $emailaddress"
+    	    echo "    Filter Type: $filtertype"
+    	    echo "    Field Type: $fieldtype"
+    	    echo "    Field Value: $fieldvalue"
     	    echo ""
-    	    echo "Would you like to proceed? (Y/N)"
+	    echo "Would you like to proceed? (Y/N)"
 	       read buildrule
 		if [ ${buildrule,,} = "n" ] ;then
 	        exit
-	    fi
+	        fi
 	fi
 	    currentdirectory=$(pwd)
 	    echo "building rule and placing it in the following directory: $currentdirectory "
@@ -175,7 +243,9 @@ if [ $userselect = "1" ] ; then
 		sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
 		sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
 		sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
-
+		sed -i 's|filter-type-placeholder|'"$filtertype"'|g' $rulename.yaml
+		sed -i 's|field-type-placeholder|'"$fieldtype"'|g' $rulename.yaml
+		sed -i 's|field-value-placeholder|'"$fieldvalue"'|g' $rulename.yaml
 fi
 
 
