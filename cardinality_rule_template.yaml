@@ -47,5 +47,5 @@ alert:
 
 # (required, email specific)
 # a list of email addresses to send alerts to
-alert-option-placeholder:
-- "alert-option-value-placeholder"
+#alert-option-placeholder:
+#- "alert-option-value-placeholder"
