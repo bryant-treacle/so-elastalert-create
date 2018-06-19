@@ -270,6 +270,8 @@ elif [ $userselect = "2" ] ; then
         read comparekey
     echo ""
     echo "The blacklist file should be a text file with a single value per line."
+    echo ""
+    echo "The file needs to be accesable by the so-logstash container. I recomend placing it in the /etc/elastaler/rules directory."
     echo "Where is the location of the blacklist file?"
     echo ""
         read blacklistfile
@@ -323,7 +325,7 @@ elif [ $userselect = "2" ] ; then
     echo "    Rule Name: $rulename"
     echo "    Index: $indexname"
     echo "    Compare Key: $comparekey"
-    echo "    Blacklist file location: $blacklistfile"
+    echo "    Blacklist file location: $blacklistfile/$rulename.yaml"
     echo "    Alert option: $alertoption"
 #    echo "    Email Address: $emailaddress"
     echo "    Filter Type: $filtertype"
@@ -346,7 +348,7 @@ elif [ $userselect = "2" ] ; then
         sed -i 's|name-placeholder|'"$rulename"'|g' $rulename.yaml
         sed -i 's|index-placeholder|'"$indexname"'|g' $rulename.yaml
         sed -i 's|compare-key-placeholder|'"$comparekey"'|g' $rulename.yaml
-        sed -i 's|blacklist-file-placeholder|'"$blacklistfile"'|g' $rulename.yaml
+        sed -i 's|blacklist-file-placeholder|'"$blacklistfile/$rulename.yaml"'|g' $rulename.yaml
         sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
        # sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
        # sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
