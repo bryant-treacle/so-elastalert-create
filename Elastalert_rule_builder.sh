@@ -69,16 +69,12 @@ if [ $userselect = "1" ] ; then
        read timeframe
     echo ""
     echo "By default, all matches will be written back to the elastalert index.  If you would like to add an additional alert method please"
-    echo "choose from the below options. To use the default Email type email."
+    echo "choose from the below options. To use the default type debug."
     echo ""
 	read alertoption
   	
-	if [ ${alertoption,,} = "email" ] ; then
-	    echo "Using default alert type of Email."
-    	    echo "Please enter an email address you want to send the alerts to. The email does not need to be legitimate if only writing"
-	    echo "the alerts back to the elastalert index.  If you want to send legitimate emails ensure the Master Node is properly configured"
-	    echo "to send emails."
-		read emailaddress
+	if [ ${alertoption,,} = "debug" ] ; then
+	    echo "Using default alert type of debug.  Alerts will only be written to the *:elastalert_status* index"
 	fi
     echo ""
     echo "By default this script will use a wildcard seach that will include all logs for the index choosen above."
@@ -123,7 +119,7 @@ if [ $userselect = "1" ] ; then
     echo "    Max Cardinality: $maxcardinality"
     echo "    Timeframe: $timeframe"
     echo "    Alert option: $alertoption"
-    echo "    Email Address: $emailaddress"
+#    echo "    Email Address: $emailaddress"
     echo "    Filter Type: $filtertype"
     echo "    Field Type: $fieldtype"
     echo "    Field Value: $fieldvalue"
@@ -170,14 +166,15 @@ if [ $userselect = "1" ] ; then
     	    echo "By default, all matches will be written back to the elastalert index.  If you would like to add an additional alert method please"
    	    echo "choose from the below options. To use the default Email type email."
     	    echo ""
-        	read alertoption
-		    if [ ${alertoption,,} = "email" ] ; then
-            	    echo "Using default alert type of Email."
-             	    echo "Please enter an email address you want to send the alerts to. The email does not need to be legitimate if only writing"
-            	    echo "the alerts back to the elastalert index.  If you want to send legitimate emails ensure the Master Node is properly configured"
-            	    echo "to send emails."
-                read emailaddress
-       		     fi
+    	    echo "By default, all matches will be written back to the elastalert index.  If you would like to add an additional alert method please"
+    	    echo "choose from the below options. To use the default type debug."
+    	    echo ""
+       		 read alertoption
+
+        	if [ ${alertoption,,} = "debug" ] ; then
+           	    echo "Using default alert type of debug.  Alerts will only be written to the *:elastalert_status* index"
+        	fi
+
 	    echo ""
     	    echo "By default this script will use a wildcard seach that will include all logs for the index choosen above."
     	    echo "Would you like to use a specific filter? (Y/N)"
@@ -221,7 +218,7 @@ if [ $userselect = "1" ] ; then
     	    echo "    Max Cardinality: $maxcardinality"
     	    echo "    Timeframe: $timeframe"
     	    echo "    Alert option: $alertoption"
-    	    echo "    Email Address: $emailaddress"
+    	   # echo "    Email Address: $emailaddress"
     	    echo "    Filter Type: $filtertype"
     	    echo "    Field Type: $fieldtype"
     	    echo "    Field Value: $fieldvalue"
@@ -246,8 +243,8 @@ if [ $userselect = "1" ] ; then
                 sed -i 's|max_cardinality-placeholder|'"$maxcardinality"'|g' $rulename.yaml
 		sed -i 's|timeframe-placeholder|'"$timeframe"'|g' $rulename.yaml
 		sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
-		sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
-		sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
+	#	sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
+	#	sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
 		sed -i 's|filter-type-placeholder|'"$filtertype"'|g' $rulename.yaml
 		sed -i 's|field-type-placeholder|'"$fieldtype"'|g' $rulename.yaml
 		sed -i 's|field-value-placeholder|'"$fieldvalue"'|g' $rulename.yaml
@@ -280,14 +277,14 @@ elif [ $userselect = "2" ] ; then
     echo "By default, all matches will be written back to the elastalert index.  If you would like to add an additional alert method please"
     echo "choose from the below options. To use the default Email type email."
     echo ""
+    echo "By default, all matches will be written back to the elastalert index.  If you would like to add an additional alert method please"
+    echo "choose from the below options. To use the default type debug."
+    echo ""
         read alertoption
-            if [ ${alertoption,,} = "email" ] ; then
-                echo "Using default alert type of Email."
-                echo "Please enter an email address you want to send the alerts to. The email does not need to be legitimate if only writing"
-                echo "the alerts back to the elastalert index.  If you want to send legitimate emails ensure the Master Node is properly configured"
-                echo "to send emails."
-                read emailaddress
-            fi
+
+        if [ ${alertoption,,} = "debug" ] ; then
+            echo "Using default alert type of debug.  Alerts will only be written to the *:elastalert_status* index"
+        fi
     echo ""
     echo "By default this script will use a wildcard seach that will include all logs for the index choosen above."
     echo "Would you like to use a specific filter? (Y/N)"
@@ -328,7 +325,7 @@ elif [ $userselect = "2" ] ; then
     echo "    Compare Key: $comparekey"
     echo "    Blacklist file location: $blacklistfile"
     echo "    Alert option: $alertoption"
-    echo "    Email Address: $emailaddress"
+#    echo "    Email Address: $emailaddress"
     echo "    Filter Type: $filtertype"
     echo "    Field Type: $fieldtype"
     echo "    Field Value: $fieldvalue"
@@ -351,8 +348,8 @@ elif [ $userselect = "2" ] ; then
         sed -i 's|compare-key-placeholder|'"$comparekey"'|g' $rulename.yaml
         sed -i 's|blacklist-file-placeholder|'"$blacklistfile"'|g' $rulename.yaml
         sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
-        sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
-        sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
+       # sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
+       # sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
         sed -i 's|filter-type-placeholder|'"$filtertype"'|g' $rulename.yaml
         sed -i 's|field-type-placeholder|'"$fieldtype"'|g' $rulename.yaml
         sed -i 's|field-value-placeholder|'"$fieldvalue"'|g' $rulename.yaml
