@@ -146,86 +146,21 @@ EOF
 
 }
 
-
-print_confirm_options()
+prompt_alert_email_addr()
 {
 
-cat << EOF
-
-below are the following options that will be configured:
-    Rule Name: $rulename
-    Index: $indexname
-    Cardinality Field: $cardinalityfield
-    Min Cardinality: $mincardinality
-    Max Cardinality: $maxcardinality
-    Timeframe: $timeframe
-    Alert option: $alertoption
-    Email Address: $emailaddress
-    Filter Type: $filtertype
-    Field Type: $fieldtype
-    Field Value: $fieldvalue
-
-Would you like to proceed? (Y/N)
-
-EOF
-
-}
-
-print_cardinality_timeframe()
-{
-
-cat << EOF
-
-The Cardinality Timeframe is defined as the number of unique values 
-in the most recent X hours.
-
-What is the timeframe?
-
-EOF
-
-}
-
-gen_cardinality_rule()
-{
-
-print_cardinality_welcome
-print_name_prompt
-
-read rulename
-
-print_prompt_index
-
-read indexname
-
-print_cardinality_field
-
-read cardinalityfield
-
-print
-
-print_min_cardinality
-
-read mincardinality
-
-print_max_cardinality
-
-read maxcardinality
-
-print_cardinality_timeframe
-read timeframe
-
-print_alertoption
-
-read alertoption
-  	
-if [ ${alertoption,,} = "email" ]; then
+if [ ${alertoption,,} = "email" ] ; then
     echo "Using default alert type of Email."
     echo "Please enter an email address you want to send the alerts to. The email does not need to be legitimate if only writing"
     echo "the alerts back to the elastalert index.  If you want to send legitimate emails ensure the Master Node is properly configured"
     echo "to send emails."
     read emailaddress
 fi
-    echo ""
+
+}
+
+prompt_filter_option()
+{
 
 cat << EOF
 
@@ -280,16 +215,35 @@ else
     fieldvalue="*"
 fi
 
-print_confirm_options
+}
 
-read buildrule
 
-if [ ${buildrule,,} = "n" ]; then
-    echo "Rule building terminated"
-    main_menu
-fi
+print_confirm_options()
+{
 
-currentdirectory=$(pwd)
+cat << EOF
+
+below are the following options that will be configured:
+    Rule Name: $rulename
+    Index: $indexname
+    Cardinality Field: $cardinalityfield
+    Min Cardinality: $mincardinality
+    Max Cardinality: $maxcardinality
+    Timeframe: $timeframe
+    Alert option: $alertoption
+    Email Address: $emailaddress
+    Filter Type: $filtertype
+    Field Type: $fieldtype
+    Field Value: $fieldvalue
+
+Would you like to proceed? (Y/N)
+
+EOF
+
+}
+
+print_build_rule_dialog()
+{
 
 cat << EOF
 
@@ -303,43 +257,109 @@ on the Master Node.
 
 EOF
 
+}
+
+print_cardinality_timeframe()
+{
+
+cat << EOF
+
+The Cardinality Timeframe is defined as the number of unique values 
+in the most recent X hours.
+
+What is the timeframe?
+
+EOF
+
+}
+
+
+replace_params()
+{
+
+    sed -i 's|name-placeholder|'"$rulename"'|g' $rulename.yaml
+    sed -i 's|index-placeholder|'"$indexname"'|g' $rulename.yaml
+    sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
+    sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
+    sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
+    sed -i 's|filter-type-placeholder|'"$filtertype"'|g' $rulename.yaml
+    sed -i 's|field-type-placeholder|'"$fieldtype"'|g' $rulename.yaml
+    sed -i 's|field-value-placeholder|'"$fieldvalue"'|g' $rulename.yaml
+
+}
+
+gen_cardinality_rule()
+{
+
+print_cardinality_welcome
+print_name_prompt
+
+read rulename
+
+print_prompt_index
+
+read indexname
+
+print_cardinality_field
+
+read cardinalityfield
+
+print
+
+print_min_cardinality
+
+read mincardinality
+
+print_max_cardinality
+
+read maxcardinality
+
+print_cardinality_timeframe
+read timeframe
+
+print_alertoption
+
+read alertoption
+
+prompt_alert_email_addr
+
+prompt_filter_option
+
+print_confirm_options
+
+read buildrule
+
+if [ ${buildrule,,} = "n" ]; then
+    echo "Rule building terminated"
+    main_menu
+fi
+
+currentdirectory=$(pwd)
+
+print_build_rule_dialog
+
 cp cardinality_rule_template.yaml $rulename.yaml
 
-sed -i 's|name-placeholder|'"$rulename"'|g' $rulename.yaml 
-sed -i 's|index-placeholder|'"$indexname"'|g' $rulename.yaml
+# Parameters that are common to both cardinality and blacklist rules are
+# replaced in the 'replace_params' function
+replace_params
+
 sed -i 's|cardinality-field-placeholder|'"$cardinalityfield"'|g' $rulename.yaml
 sed -i 's|min_cardinality-placeholder|'"$mincardinality"'|g' $rulename.yaml
 sed -i 's|max_cardinality-placeholder|'"$maxcardinality"'|g' $rulename.yaml
 sed -i 's|timeframe-placeholder|'"$timeframe"'|g' $rulename.yaml
-sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
-sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
-sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
-sed -i 's|filter-type-placeholder|'"$filtertype"'|g' $rulename.yaml
-sed -i 's|field-type-placeholder|'"$fieldtype"'|g' $rulename.yaml
-sed -i 's|field-value-placeholder|'"$fieldvalue"'|g' $rulename.yaml
 
 }
 
 gen_blacklist_rule()
 {
 
-#elif [ $userselect = "2" ] ; then
 print_blacklist_welcome
 print_name_prompt
 
 read rulename
 
-cat << EOF 
-
-What elasticsearch index do you want to search?
-
-Below are the default Index Patterns for Security Onion
-
-*:logstash-bro*
-*:logstash-beats*
-*:elastalert_status*
-
-EOF
+print_prompt_index
     
 read indexname
 
@@ -363,49 +383,9 @@ echo ""
 
 read alertoption
 
-if [ ${alertoption,,} = "email" ] ; then
-    echo "Using default alert type of Email."
-    echo "Please enter an email address you want to send the alerts to. The email does not need to be legitimate if only writing"
-    echo "the alerts back to the elastalert index.  If you want to send legitimate emails ensure the Master Node is properly configured"
-    echo "to send emails."
-    read emailaddress
-fi
+prompt_alert_email_addr
 
-echo ""
-echo "By default this script will use a wildcard seach that will include all logs for the index choosen above."
-echo "Would you like to use a specific filter? (Y/N)"
-
-read filteroption
-
-if [ ${filteroption,,} = "y" ] ; then
-    echo "This script will allow you to generate basic filters.  For complex filters visit https://elastalert.readthedocs.io/en/latest/recipes/writing_filters.html"
-    echo ""
-    echo "Term: Allows you to match a value in a field.  For example you can select the field source_ip and the value 192.168.1.1"
-    echo "or choose a specific logtype you want the rule to apply to ie. field_type: event_type and the field_value bro_http"
-    echo ""
-    echo "Wildcard: Allows you to use the wildcard * in the field_value.  For example field_type: useragent and field_value: *Mozilla* "
-    echo ""
-    echo "Please choose from the following filter types: term or wildcard "
-    echo ""
-
-    read filtertype
-
-    if [ ${filtertype,,} = "term" ] ; then
-        echo "What field do you want to use?"
-        read fieldtype
-        echo "What is the value for the field."
-        read fieldvalue
-    elif [ ${filtertype,,} = "wildcard" ] ; then
-        echo "What field do you want to use?"
-        read fieldtype
-        echo "What is the value for the field."
-        read fieldvalue
-    fi
-    else
-        filtertype="wildcard"
-        fieldtype="event_type"
-        fieldvalue="*"
-    fi
+prompt_filter_option
 
     echo ""
     echo "below are the following options that will be configured:"
@@ -426,26 +406,16 @@ if [ ${filteroption,,} = "y" ] ; then
         exit
     fi
 
-    currentdirectory=$(pwd)
+currentdirectory=$(pwd)
 
-    echo "building rule and placing it in the following directory: $currentdirectory "
-    echo ""
-    echo "I recommend you test the rule by using the so-elastalert-test-rule script"
-    echo ""
-    echo "After you test the script, move it to the /etc/elastalert/rules on the Master Node."
+print_build_rule_dialog
 
-    cp blacklist_rule_template.yaml $rulename.yaml
+cp blacklist_rule_template.yaml $rulename.yaml
 
-    sed -i 's|name-placeholder|'"$rulename"'|g' $rulename.yaml
-    sed -i 's|index-placeholder|'"$indexname"'|g' $rulename.yaml
-    sed -i 's|compare-key-placeholder|'"$comparekey"'|g' $rulename.yaml
-    sed -i 's|blacklist-file-placeholder|'"$blacklistfile"'|g' $rulename.yaml
-    sed -i 's|alert-placeholder|'"$alertoption"'|g' $rulename.yaml
-    sed -i 's|alert-option-placeholder|'"$alertoption"'|g' $rulename.yaml
-    sed -i 's|alert-option-value-placeholder|'"$emailaddress"'|g' $rulename.yaml
-    sed -i 's|filter-type-placeholder|'"$filtertype"'|g' $rulename.yaml
-    sed -i 's|field-type-placeholder|'"$fieldtype"'|g' $rulename.yaml
-    sed -i 's|field-value-placeholder|'"$fieldvalue"'|g' $rulename.yaml
+replace_params
+
+sed -i 's|compare-key-placeholder|'"$comparekey"'|g' $rulename.yaml
+sed -i 's|blacklist-file-placeholder|'"$blacklistfile"'|g' $rulename.yaml
 
 }
 
