@@ -1,0 +1,636 @@
+#!/bin/bash -i
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Purpose:  This script will allow you to test your elastalert rule without entering the Docker container.
+
+if [[ $(/usr/bin/id -u) -ne 0 ]]; then
+    echo "This script must be run as root."
+    exit
+fi
+
+
+######################################################
+#               Universal Rule Options               #
+######################################################
+
+#############################
+#        Rule Type         #
+#############################
+rule_type_select_prompt()
+{
+cat <<  EOF
+
+This script will help automate the creation of Elastalert Rules.
+Please choose the rule you would like to build.
+
+For Cardinality rules: Press 1
+For Blacklist rules: Press 2
+For Whitelist rules: Press 3
+For Frequency rules: Press 4
+For Change rules : Press 5
+
+To Exit: Press 9
+
+EOF
+
+}
+
+#############################
+#        Rule Name          #
+#############################
+rule_name_prompt()
+{
+
+cat << EOF
+The rule name will appear in the subject of the alerts and be the name of the yaml rule file.
+
+What do you want to name the rule?
+
+EOF
+
+   read rulename
+
+cat << EOF >> $rulename.yaml
+# Elasticsearch Host
+es_host: elasticsearch
+es_port: 9200
+
+# (Required)
+# Rule name, must be unique
+name: $rulename
+
+EOF
+}
+
+#############################
+#        Index Name         #
+#############################
+index_name_prompt()
+{
+cat << EOF
+
+What elasticsearch index do you want to use?
+Below are the default Index Patterns used in Security Onion:
+
+*:logstash-*
+*:logstash-beats-*
+*:elastalert_status*
+
+EOF
+    read indexname
+cat << EOF >> $rulename.yaml
+
+# (Required)
+# Index to search, wildcard supported
+index: $indexname
+
+EOF
+}
+
+#############################
+#       Alert Options       #
+#############################
+alert_options_prompt()
+{
+cat << EOF
+
+By default, all matches will be written back to the elastalert index.
+Please choose from the below options.
+
+   - For Email: Press 1
+   - For Slack: Press 2
+   - For the default (debug): Press 3
+EOF
+
+read alertoption
+
+    if [ $alertoption = "1" ] ; then
+        echo "Please enter the email address you want to send the alerts to.  Note: Ensure the Master Server is configured for SMTP."
+            read emailaddress
+    cat << EOF >> $rulename.yaml
+# (Required)
+# The alert is use when a match is found
+alert:
+- email
+
+# (required, email specific)
+# a list of email addresses to send alerts to
+email:
+ - $emailaddress
+EOF
+
+    elif [ $alertoption = "2" ] ; then
+
+	echo "The webhook URL that includes your auth data and the ID of the channel (room) you want to post to."
+	echo "Go to the Incoming Webhooks section in your Slack account https://XXXXX.slack.com/services/new/incoming-webhook,"
+	echo "choose the channel, click ‘Add Incoming Webhooks Integration’ and copy the resulting URL. You can use a list of URLs to send to multipe channels."
+	echo ""
+	echo "Please enter the webhook URL below:"
+	echo ""
+            read webhookurl
+
+	cat << EOF >> $rulename.yaml
+# (Required)
+# The alert is use when a match is found
+alert:
+- slack
+
+# (required,Slack specific)
+# Enter the webhook URL below
+slack:
+ - $webhookurl
+
+EOF
+
+    else
+        echo "Using default alert type of debug.  Alerts will only be written to the *:elastalert_status* index."
+   cat << EOF >> $rulename.yaml
+# (Required)
+# The alert is use when a match is found
+alert:
+- debug
+
+EOF
+
+    fi
+}
+
+#############################
+#      Filter Options       #
+#############################
+filter_options_prompt()
+{
+cat << EOF
+
+By default this script will use a wildcard seach that will include all logs for the index choosen above.
+Would you like to use a specific filter? (Y/N)
+
+EOF
+
+    read filteroption
+    if [ ${filteroption,,} = "y" ] ; then
+        echo "This script will allow you to generate basic filters.  For complex filters visit https://elastalert.readthedocs.io/en/latest/recipes/writing_filters.html"
+        echo ""
+        echo "Term: Allows you to match a value in a field.  For example you can select the field source_ip and the value 192.168.1.1"
+        echo "or choose a specific logtype you want the rule to apply to ie. field_type: event_type and the field_value bro_http"
+        echo ""
+        echo "Wildcard: Allows you to use the wildcard * in the field_value.  For example field_type: useragent and field_value: *Mozilla* "
+        echo ""
+        echo "Please choose from the following filter types."
+        echo ""
+        echo "term or wildcard"
+            read filter_type
+            if [ ${filter_type,,} = "term" ] ; then
+                echo "What field do you want to filter on?"
+                    read field_name
+                echo "What is the value for the $field_name field."
+                    read field_value
+
+		cat << EOF >> $rulename.yaml
+#(Required)
+# A list of Elasticsearch filters used for find events
+# These filters are joined with AND and nested in a filtered query
+# For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
+filter:
+
+- term:
+    $field_name: "$field_value"
+
+EOF
+            elif [ ${filter_type,,} = "wildcard" ] ; then
+                echo "What field do you want to use?"
+                    read field_name
+                echo "What is the value for the $field_name field."
+                    read field_value
+		cat << EOF >> $rulename.yaml
+#(Required)
+# A list of Elasticsearch filters used for find events
+# These filters are joined with AND and nested in a filtered query
+# For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
+filter:
+
+- wildcard:
+    $field_name: "$field_value"
+
+EOF
+	    fi
+    else
+
+    cat << EOF >> $rulename.yaml
+#(Required)
+# A list of Elasticsearch filters used for find events
+# These filters are joined with AND and nested in a filtered query
+# For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
+filter:
+
+- wildcard:
+    event_type: "*"
+
+EOF
+    fi
+
+}
+
+############################
+#     Re-alert Options     #
+#############################
+realert_prompt()
+{
+echo "The realert option allows you to ignore repeating alerts for a given period of time."
+echo "Would you like to set a realert timeframe? (Y/N)"
+    read realert_option
+
+    if [ ${realert_option,,} = "y" ] ; then
+	echo "Please choose from the following units of measure:"
+	echo ""
+	echo " - weeks, days, hours, minutes, or seconds"
+	read realert_unit_of_measure
+	echo "Please enter the number of $realert_unit_of_measure you want to use."
+        read realert_timeframe
+
+     cat << EOF >> $rulename.yaml
+# This option allows you to ignore repeating alerts for a period of time.
+realert:
+  $realert_unit_of_measure: $realert_timeframe
+
+EOF
+    fi
+}
+
+#######################
+#    Final prompt     #
+#######################
+final_prompt()
+{
+current_directory=$(pwd)
+sleep 3
+echo "Writing rule to the following location:"
+echo ""
+echo "    $current_directory/$rulename.yaml"
+echo ""
+sleep 3
+echo "Complete!"
+sleep 3
+}
+
+
+###################################
+# Functions for Cardinality Rules #
+###################################
+cardinality_rule_prompt()
+{
+    echo "The Cardinality rule will be alert when the maximum or minium number of unique values for a given field reach a threshold."
+    echo "What field do you want to be the Cardinality Field?"
+    echo ""
+        read cardinality_field
+
+	cat  << EOF >> $rulename.yaml
+
+# (Required)
+# Type of alert.
+# The Cardinality rule matches when the total number of unique values for a certainfield , within a given timeframe is higher or lower than a threshold.
+type: cardinality
+
+# (Required, cardinality specific)
+# Count the number of unique value for this field
+cardinality_field: $cardinality_field
+
+EOF
+    echo ""
+    echo "To alert on values LESS than X unique values in the cardinality field: Press 1"
+    echo "To alert on values GREATER than X unique values in the cardinality field: Press 2"
+    echo ""
+        read cardinality_max_min
+    if [ $cardinality_max_min = "1" ] ; then
+        echo "The Minimum Cardinality value will alert you when there is less than X unique values in that field."
+        echo "What is the minimum Cardinality value?"
+        echo ""
+            read cardinality_min
+
+	cat << EOF >> $rulename.yaml
+# (Required, frequency specific)
+# Alert when there is less than X unique values
+min_cardinality: $cardinality_min
+
+EOF
+
+    elif [ $cardinality_max_min = "2" ] ; then
+        echo "The Manimum Cardinality value will alert you when there is more than X unique values."
+        echo "What is the maximum Cardinality value?"
+        echo ""
+            read cardinality_max
+
+	cat << EOF >> $rulename.yaml
+# (Required, frequency specific)
+# Alert when there is more than X unique values
+max_cardinality: $cardinality_max
+
+EOF
+
+    fi
+    echo ""
+    echo "The Cardinality Timeframe is defined as the number of unique values in the most recent X hours."
+    echo ""
+    echo "Below are the available units of measure for the timeframe field:"
+    echo " - weeks, days, hours, minutes, or seconds"
+    echo "What unit of measure do you want to use?"
+        read timeframe_units
+    echo "Plese enter the number of $timeframe_units you want to use."
+        read timeframe
+
+    cat << EOF >> $rulename.yaml
+# (Required, frequency specific)
+# The cardinality is defined as the number of unique values for the most recent 4 hours
+
+timeframe:
+  $timeframe_units: $timeframe
+
+EOF
+
+}
+
+###################################
+# Functions for Blacklist Rules #
+###################################
+blacklist_rule_prompt()
+{
+    echo "The blacklist rule will compare the values contained in a text file against the compare_key and alert if there is a match."
+    echo "What field do you want to compare to the blacklist?"
+    echo ""
+        read compare_key
+
+    echo "The blacklist file should be a text file with a single value per line."
+    echo ""
+    echo "The file needs to be accesable by the so-elastalert container."
+    echo ""
+    echo "Please enter the full path and filename of the blacklist."
+    echo ""
+        read -e blacklist_file_location
+
+    cat << EOF >> $rulename.yaml
+# (Required)
+# Type of alert.
+# The Blacklist rule will check  a certain field against a blacklist and match if it is in the blacklist
+type: blacklist
+
+# (Required, blacklist)
+# The name of the field to use to compare to the blacklist. If the field is null, those events will be ignored.
+compare_key: $compare_key
+
+# (Required, blacklist)
+# A list of blacklisted values, and/or a list of paths to flat files which contain the blacklisted values
+blacklist:
+    - "!file $blacklist_file_location"
+
+EOF
+
+}
+
+###################################
+#  Functions for Whitelist Rules  #
+###################################
+whitelist_rule_prompt()
+{
+    echo "The whitelist rule will compare the values contained in a text file against the compare_key and alert if there is a match."
+    echo "What field do you want to compare to the whitelist?"
+    echo ""
+        read compare_key
+
+    echo "The whitelist file should be a text file with a single value per line."
+    echo ""
+    echo "The file needs to be accesable by the so-elastalert container."
+    echo ""
+    echo "Please enter the full path and filename of the blacklist."
+    echo ""
+        read -e whitelist_file_location
+
+    cat << EOF >> $rulename.yaml
+# (Required)
+# Type of alert.
+# the whitelist rule will check a certain field against a whitelist and match if it is in the whitelist
+type: whitelist
+
+# (Required, whitelist)
+# The name of the field to use to compare to the whitelist. If the field is null, those events will be ignored.
+compare_key: $compare_key
+
+# (Required, whitelist)
+# A list of whitelisted values, and/or a list of paths to flat files which contain the whitelisted values
+whitelist:
+    - "!file $whitelist_file_location"
+
+EOF
+}
+
+###################################
+#  Functions for Frequency Rules  #
+###################################
+frequency_rule_prompt()
+{
+echo "The Frequency rule matches when there are at least a certain number of events in a given timeframe."
+echo ""
+echo "Enter the number of events you want to alert on:"
+    read num_events
+echo ""
+echo "Below are the available units of measure for the timeframe field:"
+echo " - weeks, days, hours, minutes, or seconds"
+echo "What unit of measure do you want to use?"
+    read timeframe_units
+echo "Plese enter the number of $timeframe_units you want to use."
+    read timeframe
+
+cat << EOF >> $rulename.yaml
+
+# (Required)
+# Type of alert.
+# the frequency rule type alerts when num_events events occur with timeframe time
+type: frequency
+
+# (Required, frequency specific)
+# Alert when this many documents matching the query occur within a timeframe
+num_events: $num_events
+
+# (Required, frequency specific)
+# num_events must occur within this amount of time to trigger an alert
+timeframe:
+  $timeframe_units: $timeframe
+
+EOF
+
+cat << EOF 
+The frequency rule has the below optional fields:
+    - use_count_query: if true, ElastALert will poll Elasticsearch using the count api and not download all the matching
+    documents.  This is useful if you only care about the numbers and not the actual data.
+    - use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching 
+    each unique value of the query_key.  This will only return the Maximum of terms_size, default 50 unique terms.
+
+
+Would you like to set the optional settings? (Y/N)
+
+EOF
+    read frequency_rule_options
+
+    if [ ${frequency_rule_options,,} = "y" ] ; then
+	echo "To set the use_count_query to true: press 1"
+	echo "To set the use_terms_query to true: press 2"
+	    read frequency_query_type
+	if [ $frequency_query_type = "1" ] ; then
+
+            cat << EOF >> $rulename.yaml
+
+# Only count number of records, instead of bringing all data back
+use_count_query: true
+doc_type: 'doc'
+
+EOF
+	elif [ $frequency_query_type = "2" ] ; then
+	    echo "Please enter the query_key:"
+		read query_key
+	    echo "Please enter the terms size:"
+		read term_size
+
+	    cat << EOF >> $rulename.yaml
+# Only count number of records, instead of bringing all data back
+use_terms_query: true
+doc_type: 'doc'
+
+# Query_key count of documents will be stored independently for each value of query_key
+query_key: $query_key
+
+# Term_size is the maximum number of terms returned per query.  Default is 50.
+terms_size: $term_size
+
+EOF
+	fi 
+    fi
+
+}
+
+###################################
+#  Functions for Change Rules  #
+###################################
+change_rule_prompt()
+{
+echo "The change rule will monitor a certain field and match if that field changes."
+echo ""
+echo "The field must change with respect to the last event with the same query_key."
+echo "Below is an example with a query_key of bob and a compare_key of source_ip:"
+echo ""
+echo "    -username bob AND source_ip: 192.168.1.2"
+echo "    -username bob AND source_ip: 192.168.1.3"
+echo ""
+echo "The compare_key parameter names of the field to monitor for changes." 
+echo "Since this is a list of strings, we can have multiple keys. An alert will trigger if any of the fields change."
+echo ""
+echo "What field do you want to monitor for changes?"
+    read compare_key
+echo ""
+echo "The query_key parameter names the field that must be present in all of the events that are checked."
+echo "What field do you want be the query_key?"
+    read query_key
+echo ""
+echo "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert."
+echo ""
+echo "Below are the available units of measure for the timefame field:"
+echo " - weeks, days, hours, minutes, or seconds"
+echo "What unit of measure do you want to use?"
+    read timeframe_units
+echo "Plese enter the number of $timeframe_units you want to use."
+    read timeframe
+    cat << EOF >> $rulename.yaml
+
+# (Required, change specific)
+# The field to look for changes in
+compare_key: $compare_key
+
+# (Required, change specific)
+# Ignore documents without the compare_key (source_ip) field
+ignore_null: true
+
+# (Required, change specific)
+# The change must occur in two documents with the same query_key
+query_key: $query_key
+
+# (Required, change specific)
+# The value of compare_key must change in two events that are less than timeframe apart to t$
+timeframe:
+  $timeframe_units: $timeframe
+
+EOF
+
+}
+
+#################################
+#    Function for Main Menu     #
+#################################
+
+main_menu()
+{
+while true; do
+
+rule_type_select_prompt
+    read rule_type
+
+    if [ $rule_type = "1" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        cardinality_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+	final_prompt
+    elif [ $rule_type = "2" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        blacklist_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+	final_prompt
+    elif [ $rule_type = "3" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        whitelist_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+	final_prompt
+     elif [ $rule_type = "4" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        frequency_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "5" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        change_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+    elif [ $rule_type = "9" ] ; then
+        exit
+    fi
+done
+}
+
+
+
+
+########################## Testing below ... ##########
+main_menu
