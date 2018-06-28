@@ -25,6 +25,87 @@ fi
 #               Universal Rule Options               #
 ######################################################
 
+#################################
+#    Function for Main Menu     #
+#################################
+
+main_menu()
+{
+while true; do
+
+rule_type_select_prompt
+    read rule_type
+
+    if [ $rule_type = "1" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        cardinality_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+    elif [ $rule_type = "2" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        blacklist_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+    elif [ $rule_type = "3" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        whitelist_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "4" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        frequency_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "5" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        change_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "6" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        spike_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "7" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        new_term_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "8" ] ; then
+        rule_name_prompt
+        index_name_prompt
+        flatline_rule_prompt
+        realert_prompt
+        filter_options_prompt
+        alert_options_prompt
+        final_prompt
+     elif [ $rule_type = "9" ] ; then
+        exit
+    fi
+done
+}
+
 #############################
 #        Rule Type         #
 #############################
@@ -35,13 +116,15 @@ cat <<  EOF
 This script will help automate the creation of Elastalert Rules.
 Please choose the rule you would like to build.
 
-For Cardinality rules: Press 1
-For Blacklist rules: Press 2
-For Whitelist rules: Press 3
-For Frequency rules: Press 4
-For Change rules : Press 5
-
-To Exit: Press 9
+For Cardinality rules:  Press 1
+For Blacklist rules:  Press 2
+For Whitelist rules:  Press 3
+For Frequency rules:  Press 4
+For Change rules:  Press 5
+For Spike rules:  Press 6
+For New Term rules:  Press 7
+For Flatline rules:  Press 8
+To Exit:  Press 9
 
 EOF
 
@@ -245,7 +328,7 @@ EOF
 
 ############################
 #     Re-alert Options     #
-#############################
+############################
 realert_prompt()
 {
 echo "The realert option allows you to ignore repeating alerts for a given period of time."
@@ -295,7 +378,6 @@ cardinality_rule_prompt()
     echo "What field do you want to be the Cardinality Field?"
     echo ""
         read cardinality_field
-
 	cat  << EOF >> $rulename.yaml
 
 # (Required)
@@ -361,16 +443,15 @@ EOF
 
 }
 
-###################################
+#################################
 # Functions for Blacklist Rules #
-###################################
+#################################
 blacklist_rule_prompt()
 {
     echo "The blacklist rule will compare the values contained in a text file against the compare_key and alert if there is a match."
     echo "What field do you want to compare to the blacklist?"
     echo ""
         read compare_key
-
     echo "The blacklist file should be a text file with a single value per line."
     echo ""
     echo "The file needs to be accesable by the so-elastalert container."
@@ -518,9 +599,9 @@ EOF
 
 }
 
-###################################
+################################
 #  Functions for Change Rules  #
-###################################
+################################
 change_rule_prompt()
 {
 echo "The change rule will monitor a certain field and match if that field changes."
@@ -543,13 +624,17 @@ echo "What field do you want be the query_key?"
 echo ""
 echo "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert."
 echo ""
-echo "Below are the available units of measure for the timefame field:"
+echo "Below are the available units of measure for the timeframe field:"
 echo " - weeks, days, hours, minutes, or seconds"
 echo "What unit of measure do you want to use?"
     read timeframe_units
 echo "Plese enter the number of $timeframe_units you want to use."
     read timeframe
     cat << EOF >> $rulename.yaml
+# (Required)
+# Type of alert.
+# This rule will monitor a certain field and match if that field changes.
+type: change
 
 # (Required, change specific)
 # The field to look for changes in
@@ -572,65 +657,321 @@ EOF
 
 }
 
-#################################
-#    Function for Main Menu     #
-#################################
-
-main_menu()
+################################
+#  Functions for Spike Rules   #
+################################
+spike_rule_prompt()
 {
-while true; do
+echo "The spike rule matches when the volume of events during a given time period is spike_height times larger or smaller than during the previous time period."
+echo ""
+echo "Example to detect syn flood attack to public facing webserver:"
+echo "Alert when the number of <Connection attempt seen, no reply>  connection states to my web server per hour is twice as many as the previous hour." 
+echo ""
+echo "The spike_height parameter is the ratio of number of events in the last timeframe to the previous timeframe that when hit will trigger an alert."
+echo "Note: This value is a multiple!!  2 = 2x as many; 5 = 5x as many"
+echo "What do you want the spike_height to be?"
+    read spike_height
+echo ""
+echo "What do you want the spike_type parameter to be?" 
+echo "   - up: more than previous timeframe" 
+echo "   - down: less than previous timeframe"
+echo "   - both: up or down"
+    read spike_type
+echo "Below are the available units of measure for the timeframe field:"
+echo " - weeks, days, hours, minutes, or seconds"
+echo "What unit of measure do you want to use?"
+    read timeframe_units
+echo "Please enter the number of $timeframe_units you want to use."
+    read timeframe
+    cat << EOF >> $rulename.yaml
+# (Required)
+# Type of alert.
+# This rule matches when the volume of events during a given time period is spike_height times larger or smaller than during the previous time period.
+type: spike
 
-rule_type_select_prompt
-    read rule_type
+# (Required, spike specific)
+# The ratio of number of events in the last timeframe to the previous timeframe.
+spike_height: $spike_height
 
-    if [ $rule_type = "1" ] ; then
-        rule_name_prompt
-        index_name_prompt
-        cardinality_rule_prompt
-        realert_prompt
-        filter_options_prompt
-        alert_options_prompt
-	final_prompt
-    elif [ $rule_type = "2" ] ; then
-        rule_name_prompt
-        index_name_prompt
-        blacklist_rule_prompt
-        realert_prompt
-        filter_options_prompt
-        alert_options_prompt
-	final_prompt
-    elif [ $rule_type = "3" ] ; then
-        rule_name_prompt
-        index_name_prompt
-        whitelist_rule_prompt
-        realert_prompt
-        filter_options_prompt
-        alert_options_prompt
-	final_prompt
-     elif [ $rule_type = "4" ] ; then
-        rule_name_prompt
-        index_name_prompt
-        frequency_rule_prompt
-        realert_prompt
-        filter_options_prompt
-        alert_options_prompt
-        final_prompt
-     elif [ $rule_type = "5" ] ; then
-        rule_name_prompt
-        index_name_prompt
-        change_rule_prompt
-        realert_prompt
-        filter_options_prompt
-        alert_options_prompt
-        final_prompt
-    elif [ $rule_type = "9" ] ; then
-        exit
+# (Required, spike specific)
+# The spike being up, down or both
+spike_type: $spike_type
+
+# (Required, spike specific)
+# The value of average out the rate of events over this time period.
+timeframe:
+  $timeframe_units: $timeframe
+
+EOF
+
+echo "The spike rule has the following optional parameters:"
+echo "     - field_value: When set, uses the value of the field in the document and not the number of matching documents. Note the value must be a number"
+echo "     - threshold_ref: The minimum number of events that must exist in the reference window for an alert to trigger." 
+echo "       For example, if spike_height: 3 and threshold_ref: 10, then the ‘reference’ window must contain at least 10 events and the ‘current’ window at least three times that for an alert to be triggered."
+echo "     - threshold_cur: The minimum number of events that must exist in the current window for an alert to trigger."
+echo "       For example, if spike_height: 3 and threshold_cur: 60, then an alert will occur if the current window has more than 60 events and the reference window has less than a third as many."
+echo ""
+echo "Would you like to set one of these parameters? (Y/N)"
+    read spike_additional_options
+    if [ ${spike_additional_options,,} = "y" ] ; then 
+	counter=0
+	while [ $counter -eq 0 ]; do
+	counter=$(( $counter + 1 ))
+	echo "Please choose from the following options:"
+	echo "For field_value: Press 1"
+	echo "For threshold_ref: Press 2"
+	echo "For threshold_cur: Press 3"
+	echo "To continue: Press 4"
+            read spike_options_select
+                if [ $spike_options_select = "1" ] ; then
+	            echo "What field would you like to use?"
+			read field_value_field
+			cat << EOF >> $rulename.yaml
+#(Optional, spike specific)
+# field_value: When set, uses the value of the field in the document and not the number of matching documents.
+field_value: $spike_options_select
+
+EOF
+# reset the counter for the while loop
+	counter=0
+		elif [ $spike_options_select = "2" ] ; then
+	            echo "What would you like the threshold_ref to be?"
+		    read threshold_ref_field
+		    cat << EOF >> $rulename.yaml
+#(Optional, spike specific)
+# The minimum number of events that must exist in the reference window for an alert to trigger. 
+threshold_ref: $threshold_ref_field
+
+EOF
+#Reset the counter for the while loop
+	counter=0
+		elif [ $spike_options_select = "3" ] ; then
+		    echo "What would you like the threshold_cur to be?"
+		    read threshold_cur_field
+		    cat << EOF >> $rulename.yaml
+#(Optional, spike specific
+# The minimum number of events that must exist in the current window for an alert to trigger.
+threshold_cur: $threshold_cur_field
+
+EOF
+#Reset the counter for the while loop
+	counter=0
+		elif [ $spike_options_select = "4" ] ; then
+   		counter=1   
+		fi
+        done
     fi
-done
 }
 
+###################################
+#  Functions for new term Rules   #
+###################################
+new_term_rule_prompt()
+{
+echo "This rule matches when a new value appears in a field that has never been seen before."
+echo "When ElastAlert starts, it will use an aggregation query to gather all known terms for a list of fields."
+echo ""
+echo "What field(s) do you want to moniort for new terms?"
+    read new_term_field
+cat << EOF >> $rulename.yaml
+# (Required)
+# Type of alert.
+# This rule matches when a new value appears in a field that has never been seen before.
+type: new_term
 
+# (Required, new_term specific)
+# Monitor the field ip_address
+fields:
+ - "$new_term_field"
 
+EOF
 
+echo "The New Term rule has the following additional options:"
+echo "    - terms_window_size: The amount of time used for the initial query to find existing terms. No term that has occurred within this time frame will trigger an alert. The default is 30 days."
+echo "    - window_step_size: When querying for existing terms, split up the time range into steps of this size. This is usefull when covering large timeframes"
+echo "    - alert_on_missing_field: Whether or not to alert when a field is missing from a document. The default is false."
+echo "Would you like to set any of these options? (Y/N)"
+    read new_term_options
+    if [ ${new_term_options,,} = "y" ] ; then
+	counter=0
+	while [ $counter -eq 0 ]; do
+	counter=$(( $counter + 1 ))
+	echo "Please choose from the following options:"
+	echo ""
+	echo "For terms_window_size: Press 1"
+	echo "For window_step_size: Press 2"
+	echo "For alert_on_missing_field: Press 3"
+	echo "To continue: Press 4"
+	    read new_term_loop_option
+	if [ $new_term_loop_option = "1" ] ; then
+	    echo "Below are the available units of measure for the terms_window_size field:"
+	    echo " - weeks, days, hours, minutes, or seconds"
+	    echo "What unit of measure do you want to use?"
+   	    read timeframe_units
+	    echo "Please enter the number of $timeframe_units you want to use."
+    	    read timeframe
+            cat << EOF >> $rulename.yaml
+
+# (Optional, new_term specific)
+# This means that we will query 90 days worth of data when ElastAlert starts to find which values of ip_address already exist
+# If they existed in the last 90 days, no alerts will be triggered for them when they appear
+terms_window_size:
+  $timeframe_units: $timeframe
+
+EOF
+#Reset the while loop counter
+	    counter=0
+	elif [ $new_term_loop_option = "2" ] ; then
+	    echo "Below are the available units of measure for the window_step_size field:"
+            echo " - weeks, days, hours, minutes, or seconds"
+            echo "What unit of measure do you want to use?"
+            read timeframe_units
+            echo "Please enter the number of $timeframe_units you want to use."
+            read timeframe
+            cat << EOF >> $rulename.yaml
+
+# (Optional, new_term specific)
+# This means that we will query 90 days worth of data when ElastAlert starts to find which values of ip_address alr$
+# If they existed in the last 90 days, no alerts will be triggered for them when they appear
+window_step_size:
+  $timeframe_units: $timeframe
+
+EOF
+#Reset the while loop counter
+	    counter=0
+	elif [ $new_term_loop_option = "3" ] ; then
+	    echo "Please enter either true or false for the alert_on_missing_field."
+		read alert_on_missing_field_option
+	    cat << EOF >> $rulename.yaml
+# (Optional, new_term specific)
+# Whether or not to alert when a field is missing from a document. The default is false.
+alert_on_missing_field: $alert_on_missing_field_option
+
+EOF
+#reset the while loop counter
+	    counter=0
+	elif [ $new_term_loop_options = "4" ] ; then
+	    counter=1
+	fi
+        done
+    fi
+}
+
+###################################
+#  Functions for new term Rules   #
+###################################
+flatline_rule_prompt()
+{
+echo "flatline: This rule matches when the total number of events is under a given threshold for a time period."
+echo ""
+echo "Please enter the minimum threshold of events."
+    read threshold
+echo "Below are the available units of measure for the timeframe field:"
+echo " - weeks, days, hours, minutes, or seconds"
+echo "What unit of measure do you want to use?"
+    read timeframe_units
+echo "Please enter the number of $timeframe_units you want to use."
+    read timeframe
+echo ""
+    cat << EOF >> rulename.yaml
+# (Required)
+# Type of alert.
+# flatline: This rule matches when the total number of events is under a given threshold for a time period.
+type: flatline
+
+# (Required, spike specific)
+# threshold: The minimum number of events for an alert not to be triggered.
+threshold: $threshold
+
+# (Required, spike specific)
+# The value of average out the rate of events over this time period.
+timeframe:
+  $timeframe_units: $timeframe
+
+EOF
+
+echo "The flatline rule has the following additional options:"
+echo ""
+echo "    - use_count_query: If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents."
+echo "    - use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key. "
+echo "    - terms_size: When used with use_terms_query, this is the maximum number of terms returned per query. Default is 50."
+echo "    - query_key: With flatline rule, query_key means that an alert will be triggered if any value of query_key has been seen at least once and then falls below the threshold."
+echo "    - forget_keys: Only valid when used with query_key. If this is set to true, ElastAlert will “forget” about the query_key value that triggers an alert, therefore preventing any more alerts for it until it’s seen again."
+echo ""
+echo "Would you like to set any of theses options? (Y/N)"
+    read flatline_option
+    if [ ${flatline_option,,} = "y" ] ; then
+        counter=0
+	while [ $counter -eq 0 ]; do
+            counter=$(( $counter + 1 ))
+	echo "Please choose from the following options:"
+	echo ""
+	echo "For use_count_query: Press 1"
+	echo "For use_term_query: Press 2"
+	echo "For terms_size: Press 3"
+	echo "To continue: Press 4"
+	echo ""
+	    read flatline_option_select
+
+	    if [ $flatline_option_select = "1" ] ; then
+		echo "Please enter true or false for the use_count_query field."
+		    read use_count_query
+		cat  << EOF >> $rulename.yaml
+
+# (Optional, flatline specific)
+# use_count_query: If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents.
+use_count_query: $use_count_query
+doc_type: 'doc'
+
+EOF
+#Reset counter for while loop
+		counter=0
+
+	    elif [ $flatline_option_select = "2" ] ; then
+		echo "Please enter true or false for the use_terms_query." 
+		    read use_terms_query
+		echo "Please enter the query_key field."
+		    read query_key
+		echo "The forget_keys when set to true will, elastalert will forget about the query_key value, preventing any more alerts for it until it is seen again"
+		echo ""
+		echo "Please enter true of false for the forget_keys field."
+		    read forget_keys 
+		cat << EOF >> $rulename.yaml
+
+# (Optional, flatline specific)
+# Use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key."
+use_terms_query: $use_terms_query
+
+# (Optional, flatline specific)
+# Query_key means that an alert will be triggered if any value of query_key has been seen at least once and then falls below the threshold."
+query_key: $query_key
+
+# (Optional, flatline specific)
+# If this is set to true, ElastAlert will “forget” about the query_key value that triggers an alert, therefore preventing any more alerts for it until it’s seen again.
+forget_keys: $forget_keys 
+
+EOF
+#Reset counters for while loop
+		counter=0
+	    elif [ $flatline_option_select = "3" ] ; then
+		echo "Please enter the maximum number of terms returned per query,  Default is 50"
+		    read terms_size
+		cat << EOF >> $rulename.yaml
+
+# (Optional, flatline specific)
+# When used with use_terms_query, this is the maximum number of terms returned per query. Default is 50.
+terms_size: $terms_size
+
+EOF
+#Reset counters for while loop
+		counter=0
+
+	    elif [ $flatline_option_select = "4" ] ; then
+		counter=1
+	    fi
+	done
+fi
+}
 ########################## Testing below ... ##########
+
 main_menu
