@@ -257,7 +257,7 @@ filter_options_prompt()
 {
 cat << EOF
 
-By default this script will use a wildcard seach that will include all logs for the index choosen above.
+By default this script will use a wildcard search that will include all logs for the index chosen above.
 Would you like to use a specific filter? (Y/N)
 
 EOF
@@ -267,7 +267,7 @@ EOF
         echo "This script will allow you to generate basic filters.  For complex filters visit https://elastalert.readthedocs.io/en/latest/recipes/writing_filters.html"
         echo ""
         echo "Term: Allows you to match a value in a field.  For example you can select the field source_ip and the value 192.168.1.1"
-        echo "or choose a specific logtype you want the rule to apply to ie. field_type: event_type and the field_value bro_http"
+        echo "or choose a specific log type you want the rule to apply to ie. field_type: event_type and the field_value bro_http"
         echo ""
         echo "Wildcard: Allows you to use the wildcard * in the field_value.  For example field_type: useragent and field_value: *Mozilla* "
         echo ""
@@ -374,7 +374,7 @@ sleep 3
 ###################################
 cardinality_rule_prompt()
 {
-    echo "The Cardinality rule will be alert when the maximum or minium number of unique values for a given field reach a threshold."
+    echo "The Cardinality rule will be alert when the maximum or minimum number of unique values for a given field reach a threshold."
     echo "What field do you want to be the Cardinality Field?"
     echo ""
         read cardinality_field
@@ -382,7 +382,7 @@ cardinality_rule_prompt()
 
 # (Required)
 # Type of alert.
-# The Cardinality rule matches when the total number of unique values for a certainfield , within a given timeframe is higher or lower than a threshold.
+# The Cardinality rule matches when the total number of unique values for a certain field , within a given timeframe is higher or lower than a threshold.
 type: cardinality
 
 # (Required, cardinality specific)
@@ -409,7 +409,7 @@ min_cardinality: $cardinality_min
 EOF
 
     elif [ $cardinality_max_min = "2" ] ; then
-        echo "The Manimum Cardinality value will alert you when there is more than X unique values."
+        echo "The Maximum Cardinality value will alert you when there is more than X unique values."
         echo "What is the maximum Cardinality value?"
         echo ""
             read cardinality_max
@@ -429,7 +429,7 @@ EOF
     echo " - weeks, days, hours, minutes, or seconds"
     echo "What unit of measure do you want to use?"
         read timeframe_units
-    echo "Plese enter the number of $timeframe_units you want to use."
+    echo "Please enter the number of $timeframe_units you want to use."
         read timeframe
 
     cat << EOF >> $rulename.yaml
@@ -454,7 +454,7 @@ blacklist_rule_prompt()
         read compare_key
     echo "The blacklist file should be a text file with a single value per line."
     echo ""
-    echo "The file needs to be accesable by the so-elastalert container."
+    echo "The file needs to be accessible by the so-elastalert container."
     echo ""
     echo "Please enter the full path and filename of the blacklist."
     echo ""
@@ -491,7 +491,7 @@ whitelist_rule_prompt()
 
     echo "The whitelist file should be a text file with a single value per line."
     echo ""
-    echo "The file needs to be accesable by the so-elastalert container."
+    echo "The file needs to be accessible by the so-elastalert container."
     echo ""
     echo "Please enter the full path and filename of the blacklist."
     echo ""
@@ -529,7 +529,7 @@ echo "Below are the available units of measure for the timeframe field:"
 echo " - weeks, days, hours, minutes, or seconds"
 echo "What unit of measure do you want to use?"
     read timeframe_units
-echo "Plese enter the number of $timeframe_units you want to use."
+echo "Please enter the number of $timeframe_units you want to use."
     read timeframe
 
 cat << EOF >> $rulename.yaml
@@ -628,7 +628,7 @@ echo "Below are the available units of measure for the timeframe field:"
 echo " - weeks, days, hours, minutes, or seconds"
 echo "What unit of measure do you want to use?"
     read timeframe_units
-echo "Plese enter the number of $timeframe_units you want to use."
+echo "Please enter the number of $timeframe_units you want to use."
     read timeframe
     cat << EOF >> $rulename.yaml
 # (Required)
@@ -771,7 +771,7 @@ new_term_rule_prompt()
 echo "This rule matches when a new value appears in a field that has never been seen before."
 echo "When ElastAlert starts, it will use an aggregation query to gather all known terms for a list of fields."
 echo ""
-echo "What field(s) do you want to moniort for new terms?"
+echo "What field(s) do you want to monitor for new terms?"
     read new_term_field
 cat << EOF >> $rulename.yaml
 # (Required)
@@ -858,7 +858,7 @@ EOF
 }
 
 ###################################
-#  Functions for new term Rules   #
+#  Functions for Flat line Rules  #
 ###################################
 flatline_rule_prompt()
 {
@@ -972,6 +972,8 @@ EOF
 	done
 fi
 }
-########################## Testing below ... ##########
 
+##########################
+#     Start Function     #
+##########################
 main_menu
