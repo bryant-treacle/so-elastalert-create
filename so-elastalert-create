@@ -177,7 +177,7 @@ cat << EOF >> $rulename.yaml
 
 # (Required)
 # Index to search, wildcard supported
-index: $indexname
+index: "$indexname"
 
 EOF
 }
@@ -358,14 +358,14 @@ EOF
 final_prompt()
 {
 current_directory=$(pwd)
-sleep 3
+sleep 1
 echo "Writing rule to the following location:"
 echo ""
 echo "    $current_directory/$rulename.yaml"
 echo ""
-sleep 3
+sleep 1
 echo "Complete!"
-sleep 3
+sleep 1
 }
 
 
@@ -441,6 +441,20 @@ timeframe:
 
 EOF
 
+echo "The query_key counts by this field. For each unique value of the query_key field, cardinality will be counted separately."
+echo "Would you like to set the query_key parameter? (Y/N)"
+	read cardinality_rule_options
+	if [ ${cardinality_rule_options,,} = "y" ] ; then
+	    echo "What field do you want the query_key to be?"
+	    read query_key
+	cat << EOF >> $rulename.yaml
+# (Optional, frequency specific)
+# query_key: Group cardinality counts by this field. For each unique value of the query_key field, cardinality will be counted separately.
+query_key: $query_key
+
+EOF
+	fi
+
 }
 
 #################################
@@ -493,9 +507,13 @@ whitelist_rule_prompt()
     echo ""
     echo "The file needs to be accessible by the so-elastalert container."
     echo ""
-    echo "Please enter the full path and filename of the blacklist."
+    echo "Please enter the full path and filename of the whitelist."
     echo ""
         read -e whitelist_file_location
+    echo "The ignore_null parameter If true, events without a compare_key field will not match."
+    echo ""
+    echo "Please enter true or false for the ignore_null parameter."
+	read ignore_null
 
     cat << EOF >> $rulename.yaml
 # (Required)
@@ -506,6 +524,10 @@ type: whitelist
 # (Required, whitelist)
 # The name of the field to use to compare to the whitelist. If the field is null, those events will be ignored.
 compare_key: $compare_key
+
+# (Required, whitelist)
+# ignore_null: If true, events without a compare_key field will not match.
+ignore_null: $ignore_null
 
 # (Required, whitelist)
 # A list of whitelisted values, and/or a list of paths to flat files which contain the whitelisted values
@@ -873,7 +895,7 @@ echo "What unit of measure do you want to use?"
 echo "Please enter the number of $timeframe_units you want to use."
     read timeframe
 echo ""
-    cat << EOF >> rulename.yaml
+    cat << EOF >> $rulename.yaml
 # (Required)
 # Type of alert.
 # flatline: This rule matches when the total number of events is under a given threshold for a time period.
