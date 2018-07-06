@@ -1,0 +1,124 @@
+OW#! /bin/bash
+#############################
+#        Rule Name          #
+#############################
+rule_name_prompt()
+{
+rulename=$(whiptail --inputbox "What do you want to name the rule? \n test \n test2" 14 78 --title "Rule Name" 3>&1 1>&2 2>&3)
+rulename
+cat << EOF >> $rulename.yaml
+# Elasticsearch Host
+es_host: elasticsearch
+es_port: 9200
+
+# (Required)
+# Rule name, must be unique
+name: $rulename
+
+EOF
+
+}
+
+#############################
+#        Index Name         #
+#############################
+index_name_prompt()
+{
+
+indexname=$(whiptail --inputbox "What elasticsearch index do you want to use? Below are the default Index Patterns used in Security Onion: \n   - *:logstash-* \n   - *:logstash-beats-* \n   - *:elastalert_status*" 12 78 --title "Index Name" 3>&1 1>&2 2>&3)
+indexname
+cat << EOF >> $rulename.yaml
+# (Required)
+# Index to search, wildcard supported
+index: "$indexname"
+
+EOF
+
+}
+
+
+#############################
+#       Alert Options       #
+#############################
+alert_option_prompt()
+{
+alertoption=$(whiptail --title "Alert Options" --radiolist \
+"By default, all matches will be written back to the elastalert index. \nPlease choose from the below options:" 15 100 4 \
+"debug" "Will write alerts to the *:elastalert_status* index" ON \
+"slack" "Send a notification to a predefined Slack channel" OFF \
+"email" "Connect to an smtp server located at smtp_host, or localhost by default." OFF 3>&1 1>&2 2>&3)
+
+    if [ ${alertoption,,} = "slack" ] ; then
+ slackoption=$(whiptail --inputbox "The webhook URL that includes your auth data and the ID of the channel (room) you want to post to. \n\nGo to the Incoming Webhooks section in your Slack account https://XXXXX.slack.com/services/new/incoming-webhook,\nchoose the channel, click ‘Add Incoming Webhooks Integration’ and copy the resulting URL. You can use a list of URLs to send to multipe channels.\n\nPlease enter the webhook URL below:" 25 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
+        cat << EOF >> $rulename.yaml
+# (Required)
+# The alert is use when a match is found
+alert:
+- slack
+
+# (required,Slack specific)
+# Enter the webhook URL below
+slack:
+ - $slackoption
+
+EOF
+
+    elif [ ${alertoption,,} = "email" ] ; then
+        emailoption=$(whiptail --inputbox "Please enter the email address you want to send the alerts to.\nNote: Ensure the Master Server is configured for SMTP."  25 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
+        cat << EOF >> $rulename.yaml
+# (Required)
+# The alert is use when a match is found
+alert:
+- email
+
+# (required, email specific)
+# a list of email addresses to send alerts to
+email:
+ - $emailoption
+EOF
+    elif [ ${alertoption,,} = "debug" ] ; then
+        whiptail --title "debug Alerter Options"  --msgbox "Using default alert type of debug.\nAlerts will only be written to the *:elastalert_status* index." 10 90
+   cat << EOF >> $rulename.yaml
+# (Required)
+# The alert is use when a match is found
+alert:
+- debug
+
+EOF
+
+    fi
+}
+
+
+########################### Testing Below ..... ########################
+
+
+
+
+
+function mainmenu() {
+    ADVSEL=$(whiptail --title "Advanced Menu" --fb --menu "Choose an option" 15 60 4 \
+        "1" "Cardinality rules" \
+        "2" "Blacklist rules" \
+        "3" "Whitelist rules" \
+	"4" "Frequency rules"  3>&1 1>&2 2>&3)
+    case $ADVSEL in
+        1)
+	rule_name_prompt
+	index_name_prompt
+	alert_option_prompt
+	;;
+        2)
+            echo "Option 2"
+            whiptail --title "Option 1" --msgbox "You chose option 2. Exit status $?" 8 45
+        ;;
+        3)
+            echo "Option 3"
+            whiptail --title "Option 1" --msgbox "You chose option 3. Exit status $?" 8 45
+        ;;
+	4)  echo "Frequency rules"
+	    whiptail --title "Frequency Rule" --msgbox "You chose Frequency rules. Exit status $?" 8 45
+	;; 
+   esac
+}
+mainmenu
