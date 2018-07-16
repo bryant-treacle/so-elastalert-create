@@ -1,0 +1,39 @@
+# Elasticsearch Host
+es_host: elasticsearch
+es_port: 9200
+
+# (Required)
+# Rule name, must be unique
+name: powershell_user_agent_strings
+
+# (Required)
+# Index to search, wildcard supported
+index: "*:logstash-*"
+
+# (Required)
+# Type of alert.
+# The Blacklist rule will check  a certain field against a blacklist and match if it is in the blacklist
+type: blacklist
+
+# (Required, blacklist)
+# The name of the field to use to compare to the blacklist. If the field is null, those events will be ignored.
+compare_key: useragent
+
+# (Required, blacklist)
+# A list of blacklisted values, and/or a list of paths to flat files which contain the blacklisted values
+blacklist:
+    - "!file /etc/elastalert/rules/test_rules/powershell_user_agent_strings_list"
+#(Required)
+# A list of Elasticsearch filters used for find events
+# These filters are joined with AND and nested in a filtered query
+# For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
+filter:
+
+- wildcard:
+    event_type: "bro_http"
+
+# (Required)
+# The alert is use when a match is found
+alert:
+- debug
+
