@@ -726,13 +726,9 @@ EOF
 fi
 }
 
-
-########################### Testing Below ..... ########################
-#timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-
-
-
-
+######################
+# Main Menu Function #
+######################
 
 function mainmenu() {
     rule_choice=$(whiptail --title "Main Menu" --fb --menu "Please choose the rule you want to create." 20 60 10 \
@@ -821,4 +817,9 @@ function mainmenu() {
 
    esac
 }
+
+#####################
+# Launch the Script #
+#####################
+
 mainmenu
