@@ -3,6 +3,7 @@ This Script will walk you through creating elastalert rules. For best results, c
 
 # so-elastalert-create-whiptail
 This script uses whiptail as a GUI frontend to walk you through createing elastalert rules.
+![alt text](https://github.com/bryant-treacle/Repository_images/blob/master/so-elastalert-create-whiptail.PNG)
 
 I recommend that you mount a new volume to the Elastalert docker contaion to put the rules in to test prior to moving them the the /etc/elastalert/rules folder.
 
