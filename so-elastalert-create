@@ -15,11 +15,6 @@
 #
 # Purpose:  This script will allow you to test your elastalert rule without entering the Docker container.
 
-if [[ $(/usr/bin/id -u) -ne 0 ]]; then
-    echo "This script must be run as root."
-    exit
-fi
-
 
 ######################################################
 #               Universal Rule Options               #
@@ -144,6 +139,8 @@ What do you want to name the rule?
 EOF
 
    read rulename
+# remove any whitespace from user input and replaces it with an underscore
+rulename=$(echo "$rulename" | sed 's/ /_/g')
 
 cat << EOF >> $rulename.yaml
 # Elasticsearch Host

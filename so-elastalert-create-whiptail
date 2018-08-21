@@ -34,6 +34,8 @@ rulename=$(whiptail --inputbox "\nThe rulename will be used to filter alerts in 
 exitstatus=$?
 
     if [ $exitstatus = 0 ] ; then
+# Replace spaces in user input with underscore
+rulename=$(echo "$rulename" | sed 's/ /_/g')
 
 cat << EOF >> $rulename.yaml
 # Elasticsearch Host
