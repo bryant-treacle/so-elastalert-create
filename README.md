@@ -1,5 +1,5 @@
 # so-elastalert-create
-This script uses whiptail as a graphical interface that will walk you through creating basic elastalert rules.  Depending on the type of alert you are building, you may need to modify the rule and build a complex query. For best results, copy this script into the /usr/sbin/ directory and run in the folder containing the rules you want to test.
+This script uses whiptail as a graphical interface that will walk you through creating basic elastalert rules.  Depending on the type of alert you are building, you may need to modify the rule and build a complex query.
 
 For more information about elastalert check out the following link: https://elastalert.readthedocs.io
 
