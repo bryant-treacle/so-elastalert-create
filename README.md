@@ -13,5 +13,7 @@ button=white
 '
 Once the rule is created, move it to the rules_folder directory defined in the elastalert_config.yaml
 In Security Onion, the default rules_folder directory is /etc/elastalert/rules
+
+
 ![alt text](https://github.com/bryant-treacle/Repository_images/blob/master/so-elastalert-create-whiptail.PNG)
 
