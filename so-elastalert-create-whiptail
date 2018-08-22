@@ -1,10 +1,39 @@
+
 #! /bin/bash -i
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+################################
+#   Dialog box color scheme    #
+################################
+
+export NEWT_COLORS='
+window=,white	
+border=white,red
+textbox=white
+button=white
+'
+
 #############################
 #        Rule Name          #
 #############################
 rule_name_prompt()
 {
-rulename=$(whiptail --inputbox "What do you want to name the rule?" 10 60 --title "Rule Name" 3>&1 1>&2 2>&3)
+rulename=$(whiptail --inputbox "\nThe rulename will be used to filter alerts in kibana.\n\nWhat do you want to name the rule?" 10 60 --title "Rule Name" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
 
 cat << EOF >> $rulename.yaml
 # Elasticsearch Host
@@ -17,6 +46,9 @@ name: $rulename
 
 EOF
 
+    else
+	exit
+    fi
 }
 
 #############################
@@ -25,7 +57,10 @@ EOF
 index_name_prompt()
 {
 
-indexname=$(whiptail --inputbox "What elasticsearch index do you want to use? Below are the default Index Patterns used in Security Onion: \n    *:logstash-* \n    *:logstash-beats-* \n    *:elastalert_status*" 12 78 --title "Index Name" 3>&1 1>&2 2>&3)
+indexname=$(whiptail --inputbox "\nWhat elasticsearch index do you want to use? Below are the default Index Patterns used in Security Onion: \n    *:logstash-* \n    *:logstash-beats-* \n    *:elastalert_status*" 12 78 --title "Index Name" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
 
 cat << EOF >> $rulename.yaml
 # (Required)
@@ -33,7 +68,9 @@ cat << EOF >> $rulename.yaml
 index: "$indexname"
 
 EOF
-
+    else
+	exit
+    fi
 }
 
 
@@ -43,13 +80,19 @@ EOF
 alert_option_prompt()
 {
 alertoption=$(whiptail --title "Alert Options" --radiolist \
-"By default, all matches will be written back to the elastalert index. \nPlease choose from the below options:" 15 100 4 \
+"\nBy default, all matches will be written back to the elastalert index. \nPlease choose from the below options:" 15 100 4 \
 "debug" "Will write alerts to the *:elastalert_status* index" ON \
 "slack" "Send a notification to a predefined Slack channel" OFF \
 "email" "Connect to an smtp server located at smtp_host, or localhost by default." OFF 3>&1 1>&2 2>&3)
+exitstatus=$?
 
-    if [ ${alertoption,,} = "slack" ] ; then
- slackoption=$(whiptail --inputbox "The webhook URL that includes your auth data and the ID of the channel (room) you want to post to.\n\nGo to the Incoming Webhooks section in your Slack account https://XXXXX.slack.com/services/new/incoming-webhook,\nchoose the channel, click ‘Add Incoming Webhooks Integration’ and copy the resulting URL.\n\nPlease enter the webhook URL below:" 20 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
+    if [ $exitstatus = 0 ] ; then
+
+        if [ ${alertoption,,} = "slack" ] ; then
+	    slackoption=$(whiptail --inputbox "\nThe webhook URL that includes your auth data and the ID of the channel (room) you want to post to.\n\nGo to the Incoming Webhooks section in your Slack account https://XXXXX.slack.com/services/new/incoming-webhook,\nchoose the channel, click ‘Add Incoming Webhooks Integration’ and copy the resulting URL.\n\nPlease enter the webhook URL below:" 20 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
+	    exitstatus=$?
+	    if [ $exitstatus = 0 ] ; then
+
         cat << EOF >> $rulename.yaml
 # (Required)
 # The alert is use when a match is found
@@ -62,10 +105,15 @@ slack:
  - $slackoption
 
 EOF
+	    else
+	        exit
+	    fi
+	elif [ ${alertoption,,} = "email" ] ; then
+            emailoption=$(whiptail --inputbox "\nPlease enter the email address you want to send the alerts to.\nNote: Ensure the Master Server is configured for SMTP."  15 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
+            exitstatus=$?
 
-    elif [ ${alertoption,,} = "email" ] ; then
-        emailoption=$(whiptail --inputbox "Please enter the email address you want to send the alerts to.\nNote: Ensure the Master Server is configured for SMTP."  15 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
-        cat << EOF >> $rulename.yaml
+	    if [ $exitstatus = 0 ] ; then
+	cat << EOF >> $rulename.yaml
 # (Required)
 # The alert is use when a match is found
 alert:
@@ -76,8 +124,14 @@ alert:
 email:
  - $emailoption
 EOF
-    elif [ ${alertoption,,} = "debug" ] ; then
-        whiptail --title "debug Alerter Options"  --msgbox "Using the default alert type of debug.\nAlerts will only be written to the *:elastalert_status* index." 10 90
+	    else
+		exit
+	    fi
+	elif [ ${alertoption,,} = "debug" ] ; then
+        whiptail --title "debug Alerter Options"  --msgbox "\nUsing the default alert type of debug.\nAlerts will only be written to the *:elastalert_status* index." 10 90
+	exitstatus=$?
+	    if [ $exitstatus = 0 ] ; then
+
    cat << EOF >> $rulename.yaml
 # (Required)
 # The alert is use when a match is found
@@ -85,7 +139,12 @@ alert:
 - debug
 
 EOF
-
+	    else
+		exit
+	    fi
+        fi
+    else
+	exit
     fi
 }
 
@@ -95,15 +154,21 @@ EOF
 filter_options_prompt()
 {
 filteroption=$(whiptail --title "Filter Options" --radiolist \
-"This script will allow you to generate basic filters." 15 100 4 \
+"\nThis script will allow you to generate a BASIC filter for your rule. To reduce the number of false positives you may need to modify the filter." 15 100 4 \
 "default" "Uses a wildcard search that will include all logs for the $indexname index." ON \
 "term" "Allows you to match a value in a field." OFF \
 "wildcard" "Allows you to use the wildcard * in the field_value." OFF 3>&1 1>&2 2>&3)
+exitstatus=$?
 
+    if [ $exitstatus = 0 ] ; then
 
-    if [ ${filteroption,,} = "default" ] ; then
-whiptail --title "debug Alerter Options"  --msgbox "Using default filter options that will include all logs for the $indexname index" 10 90
-	     cat << EOF >> $rulename.yaml
+        if [ ${filteroption,,} = "default" ] ; then
+	    whiptail --title "debug Alerter Options"  --msgbox "\nUsing default filter options that will include all logs for the $indexname index." 10 90
+	    exitstatus=$?
+
+	        if [ $exitstatus = 0 ] ; then
+
+	    cat << EOF >> $rulename.yaml
 #(Required)
 # A list of Elasticsearch filters used for find events
 # These filters are joined with AND and nested in a filtered query
@@ -114,10 +179,20 @@ filter:
     event_type: "*"
 
 EOF
+		else
+		    exit
+		fi
+        elif [ ${filteroption,,} = "term" ] ; then
+	    field_name=$(whiptail --inputbox "\nThis option allows you to match a specific value in a field.\nFor example field name: source_ip field value: 192.168.1.1 or choose a specific log type you want to rule to apply ie. field name: event_type field value: bro_http \n\nWhat field do you want to filter on?" 15 90 --title "Term Filter Options" 3>&1 1>&2 2>&3)
+	    exitstatus=$?
 
-    elif [ ${filteroption,,} = "term" ] ; then
-	field_name=$(whiptail --inputbox "This option allows you to match a value in a field.\nFor example field source_ip field value 192.168.1.1 or choose a specific log type you want to rule to apply ie. field:event_type value bro_http \n\nWhat field do you want to use?" 15 70 --title "Term Filter Options" 3>&1 1>&2 2>&3)
-	field_value=$(whiptail  --inputbox "What is the value for the $field_name field." 10 65 --title "Term Filter Options" 3>&1 1>&2 2>&3)
+	        if [ $exitstatus = 1 ] ; then
+		    exit
+		else
+	    	    field_value=$(whiptail  --inputbox "\nWhat is the value for the $field_name field." 8 65 --title "Term Filter Options" 3>&1 1>&2 2>&3)
+			exitstatus=$?
+		        if [ $exitstatus = 0 ] ; then
+
 	    cat << EOF >> $rulename.yaml
 #(Required)
 # A list of Elasticsearch filters used for find events
@@ -129,10 +204,18 @@ filter:
     $field_name: "$field_value"
 
 EOF
+			else
+			    exit
+			fi
+		fi
+        elif [ ${filteroption,,} = "wildcard" ] ; then
+	    field_name=$(whiptail  --inputbox "\nWildcard filters allow you to use the wildcard * in the field_value to match unknown characters or to include the remaining values of a field.  For example field_name: useragent and field_value: *Mozilla* or field_name: source_ip and field_value: 192.168.*\n\nWhat field do you want to search on?" 15 90 --title "Wildcard Filter Options" 3>&1 1>&2 2>&3)
+	        exitstatus=$?
 
-    elif [ ${filteroption,,} = "wildcard" ] ; then
-	field_name=$(whiptail  --inputbox "Wildcard: Allows you to use the wildcard * in the field_value.  For example field_type: useragent and field_value: *Mozilla*\n\nWhat field do you want to search on?" 15 65 --title "Wildcard Filter Options" 3>&1 1>&2 2>&3)
-	field_value=$(whiptail  --inputbox "What is the value for the $field_name field." 10 65 --title "Wildcard Filter Options" 3>&1 1>&2 2>&3)
+	        if [ $exitstatus = 1 ] ; then
+		    exit
+	        else
+	    field_value=$(whiptail  --inputbox "\nWhat is the value for the $field_name field." 10 65 --title "Wildcard Filter Options" 3>&1 1>&2 2>&3)
             cat << EOF >> $rulename.yaml
 #(Required)
 # A list of Elasticsearch filters used for find events
@@ -144,8 +227,11 @@ filter:
     $field_name: "$field_value"
 
 EOF
-
-fi
+		fi
+	fi
+    else
+	exit
+    fi
 }
 
 ############################
@@ -153,9 +239,22 @@ fi
 ############################
 realert_prompt()
 {
-if (whiptail --yesno "The realert option allows you to ignore repeating alerts for a given period of time.\nWould you like to set a realert timeframe?" 8 78 --title "ReAlert Option") then
-     realert_unit_of_measure=$(whiptail  --inputbox "Please choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds" 10 65 --title "ReAlert Options" 3>&1 1>&2 2>&3)
-     realert_timeframe=$(whiptail  --inputbox "Please enter the number of $realert_unit_of_measure you want to use." 10 65 --title "ReAlert Options" 3>&1 1>&2 2>&3)
+if (whiptail --yesno "\nThe realert option allows you to ignore repeating alerts for a given period of time.\nWould you like to set a realert timeframe?" 15 90 --title "ReAlert Option") then
+
+    realert_unit_of_measure=$(whiptail --title "Realert Options" --radiolist \
+    "\n\nPlease choose from the options below:\n\n" 20 80 6 \
+    "weeks" "Number of weeks.                 " ON \
+    "days" "Number of days.                   " OFF \
+    "hours" "Number of hours.                 " OFF \
+    "minutes" "Number of minutes.             " OFF \
+    "seconds" "Number of seconds.             " OFF 3>&1 1>&2 2>&3)
+    exitstatus=$?
+         if [ $exitstatus = 0 ] ; then
+
+         realert_timeframe=$(whiptail  --inputbox "\nPlease enter the number of $realert_unit_of_measure you want to supress alerts." 10 65 --title "ReAlert Options" 3>&1 1>&2 2>&3)
+         exitstatus=$?
+
+             if [ $exitstatus = 0 ] ; then
 
 	cat << EOF >> $rulename.yaml
 # This option allows you to ignore repeating alerts for a period of time.
@@ -163,6 +262,12 @@ realert:
   $realert_unit_of_measure: $realert_timeframe
 
 EOF
+            else
+	        exit
+ 	    fi
+	else
+	    exit
+	fi
 fi
 }
 #######################
@@ -171,7 +276,7 @@ fi
 final_prompt()
 {
 current_directory=$(pwd)
-whiptail --title "Final Prompt"  --msgbox "Writing rule to the following location:\n    $current_directory/$rulename.yaml" 10 50
+whiptail --title "Final Prompt"  --msgbox "\nWriting rule to the following location:\n\n    $current_directory/$rulename.yaml" 10 50
 }
 
 ###################################
@@ -179,7 +284,11 @@ whiptail --title "Final Prompt"  --msgbox "Writing rule to the following locatio
 ###################################
 cardinality_rule_prompt()
 {
-cardinality_field=$(whiptail  --inputbox "The Cardinality rule will alert when the maximum or minimum number of unique values for a given field reaches a threshold\n\nWhat field do you want to be the Cardinality Field?" 15 65 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
+cardinality_field=$(whiptail  --inputbox "\nThe Cardinality rule will alert when the maximum or minimum number of unique values for a given field reaches a threshold.\nThe Cardinality field is the field to count the cardianality for.\n\nWhat field do you want to be the Cardinality Field?" 15 90 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+
 cat  << EOF >> $rulename.yaml
 
 # (Required)
@@ -192,14 +301,24 @@ type: cardinality
 cardinality_field: $cardinality_field
 
 EOF
+    else
+	exit
+    fi
 
 cardinality_max_min=$(whiptail --title "Cardinality Rule Options" --radiolist \
-"Please choose from the options below:" 20 115 4 \
+"\nThis rule requires one of the two following options.\n\nPlease choose from the options below:\n\n" 20 115 4 \
 "maximum_cardinality" "Alert on values MORE than X unique values in the cardinality field." ON \
-"minimum_cardinality" "Alert on values LESS than X unique values in the cardinality field" OFF \
-"finish" "Continue building the rule" OFF 3>&1 1>&2 2>&3)
-    if [ $cardinality_max_min = "maximum_cardinality" ] ; then
-	cardinality_max=$(whiptail  --inputbox "Please enter maximum cardinality value" 10 50 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
+"minimum_cardinality" "Alert on values LESS than X unique values in the cardinality field." OFF \
+"finish" "Continue building the rule." OFF 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+
+        if [ $cardinality_max_min = "maximum_cardinality" ] ; then
+            cardinality_max=$(whiptail  --inputbox "\nPlease enter the maximum cardinality value." 10 50 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
+            exitstatus=$?
+
+	    if [ $exitstatus = 0 ] ; then
 
 	cat << EOF >> $rulename.yaml
 # (Required, frequency specific)
@@ -207,9 +326,14 @@ cardinality_max_min=$(whiptail --title "Cardinality Rule Options" --radiolist \
 max_cardinality: $cardinality_max
 
 EOF
+	    else
+		exit
+	    fi
+	elif [ $cardinality_max_min = "minimum_cardinality" ] ; then
+        cardinality_min=$(whiptail  --inputbox "\nPlease enter the minimum cardinality value." 10 50 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
+	exitstatus=$?
 
-    elif [ $cardinality_max_min = "minimum_cardinality" ] ; then
-        cardinality_min=$(whiptail  --inputbox "Please enter minimum cardinality value" 10 50 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
+	    if [ $exitstatus = 0 ] ; then
 
         cat << EOF >> $rulename.yaml
 # (Required, frequency specific)
@@ -217,10 +341,28 @@ EOF
 min_cardinality: $cardinality_min
 
 EOF
+	    else
+		exit
+	    fi
+	fi
+    else
+	exit
     fi
 
-timeframe_units=$(whiptail  --inputbox "The Cardinality Timeframe is defined as the number of unique values in the most recent X hours.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds" 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+"\nThe Cardinality timeframe is defined as the number of unique values in the most recent X timeframe.\n\nPlease choose from the options below:\n\n" 20 80 6 \
+"weeks" "Number of events per week.                 " ON \
+"days" "Number of events per day.                   " OFF \
+"hours" "Number of events per hour.                 " OFF \
+"minutes" "Number of events per minute.             " OFF \
+"seconds" "Number of events per second.             " OFF 3>&1 1>&2 2>&3)
+exitstatus=$?
+    if [ $exitstatus = 0 ] ; then
+
+	timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+	exitstatus=$?
+
+	    if [ $exitstatus = 0 ] ; then
 
     cat << EOF >> $rulename.yaml
 # (Required, frequency specific)
@@ -230,16 +372,28 @@ timeframe:
   $timeframe_units: $timeframe
 
 EOF
+	    else
+		exit
+	    fi
+    else
+	exit
+    fi
 
-if (whiptail --yesno "The query_key groups counts by the a field. For each unique value of the query_key field, cardinality will be counted separately.\n\nWould you like to set the query_key parameter?" 8 78 --title "Query Key Option") then
-     query_key=$(whiptail  --inputbox "What field do you want the query_key to be?" 15 65 --title "Query Key Options" 3>&1 1>&2 2>&3)
+if (whiptail --yesno "\nThe query_key groups counts by this field. For each unique value of the query_key field, cardinality will be counted separately.\n\nWould you like to set the query_key parameter?" 8 78 --title "Query Key Option") then
+     query_key=$(whiptail  --inputbox "\nWhat field do you want the query_key to be?" 15 65 --title "Query Key Options" 3>&1 1>&2 2>&3)
+     exitstatus=$?
+
+     if [ $exitstatus = 0 ] ; then
         cat << EOF >> $rulename.yaml
 # (Optional, frequency specific)
 # query_key: Group cardinality counts by this field. For each unique value of the query_key field, cardinality will be counted separately.
 query_key: $query_key
 
 EOF
-        fi
+    else
+	exit
+    fi
+fi
 
 
 }
@@ -249,7 +403,11 @@ EOF
 #################################
 blacklist_rule_prompt()
 {
-compare_key=$(whiptail  --inputbox "The blacklist rule will compare the values contained in a text file against the compare_key and alert if there is a match.\n\nWhat field do you want to compare to the blacklist?" 15 65 --title "Blacklist rule Options" 3>&1 1>&2 2>&3)
+compare_key=$(whiptail  --inputbox "\nThe blacklist rule will compare the values contained in a text file against the compare_key and alert if there is a match.\n\nWhat field do you want to compare to the blacklist?" 15 65 --title "Blacklist rule Options" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+
       cat << EOF >> $rulename.yaml
 # (Required)
 # Type of alert.
@@ -261,12 +419,14 @@ type: blacklist
 compare_key: $compare_key
 
 EOF
-
-if (whiptail --yesno "The blacklist file should be a text file with a single value per line.  Note: The file needs to be accessible by the so-elastalert container.\n\nWould you like to create the file now?" 10 78 --title "Blacklist Option") then
-     file_location=$(whiptail  --inputbox "Please enter the full path and filename of the blacklist.\n Note: The filepath will be placed in the $rulename.yaml file." 10 65 --title "Blacklist File Location" 3>&1 1>&2 2>&3)
+    else
+	exit
+    fi
+if (whiptail --yesno "\nThe blacklist file should be a text file with a single value per line.  Note: The file needs to be accessible by the so-elastalert container.\n\nWould you like to create the file now?" 10 78 --title "Blacklist Option") then
+     file_location=$(whiptail  --inputbox "\nPlease enter the full path AND filename of the blacklist.\n Note: The filepath will be defined in the $rulename.yaml file." 10 65 --title "Blacklist File Location" 3>&1 1>&2 2>&3)
      counter=0
      while [ $counter -eq 0 ] ; do
-     file_value=$(whiptail  --inputbox "Please enter the values for the $compare_key one at a time.\n\nWhen finished type quit." 15 65 --title "Blacklist values" 3>&1 1>&2 2>&3)
+     file_value=$(whiptail  --inputbox "\nPlease enter the values for the $compare_key one at a time.\n\nWhen finished type quit." 15 65 --title "Blacklist values" 3>&1 1>&2 2>&3)
 	  if [ ${file_value,,} = "quit" ] ; then
                  counter=1
           else
@@ -284,7 +444,10 @@ blacklist:
 EOF
 
 else 
-    file_location=$(whiptail  --inputbox "Please enter the full path and filename of the blacklist." 15 65 --title "Blacklist File Location" 3>&1 1>&2 2>&3)
+    file_location=$(whiptail  --inputbox "\nPlease enter the full path AND filename of the blacklist." 15 65 --title "Blacklist File Location" 3>&1 1>&2 2>&3)
+    exitstatus=$?
+
+        if [ $exitstatus = 0 ] ; then
 
             cat << EOF >> $rulename.yaml
 # (Required, blacklist)
@@ -293,7 +456,9 @@ blacklist:
     - "!file $file_location"
 
 EOF
-
+	else
+	    exit
+	fi
 fi
 }
 
@@ -302,7 +467,10 @@ fi
 #################################
 whitelist_rule_prompt()
 {
-compare_key=$(whiptail  --inputbox "The whitelist rule will compare the values contained in a text file against the compare_key and alert if there is not a match.\n\nWhat field do you want to compare to the whitelist?" 15 65 --title "Whitelist rule Options" 3>&1 1>&2 2>&3)
+compare_key=$(whiptail  --inputbox "\nThe whitelist rule will compare the values contained in a text file against the compare_key and alert if there is NOT a match.\n\nWhat field do you want to compare to the whitelist?" 15 65 --title "Whitelist rule Options" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
 
       cat << EOF >> $rulename.yaml
 # (Required)
@@ -315,12 +483,14 @@ type: whitelist
 compare_key: $compare_key
 
 EOF
-
-if (whiptail --yesno "The whitelist file should be a text file with a single value per line.  Note: The file needs to be accessible by the so-elastalert container.\n\nWould you like to create the file now?" 10 78 --title "Whitelist Rule Option") then 
-     file_location=$(whiptail  --inputbox "Please enter the full path and filename of the whitelist.\nNote: The file path will be placed in the $rulename.yaml file." 10 65 --title "Whitelist File Location" 3>&1 1>&2 2>&3)
+    else
+	exit
+    fi
+if (whiptail --yesno "\nThe whitelist file should be a text file with a single value per line.  Note: The file needs to be accessible by the so-elastalert container.\n\nWould you like to create the file now?" 10 78 --title "Whitelist Rule Option") then 
+     file_location=$(whiptail  --inputbox "\nPlease enter the full path AND filename of the whitelist.\nNote: The file path will be placed in the $rulename.yaml file." 10 65 --title "Whitelist File Location" 3>&1 1>&2 2>&3)
      counter=0
      while [ $counter -eq 0 ] ; do
-     file_value=$(whiptail  --inputbox "Please enter the values for the $compare_key one at a time.\n\nWhen finished type quit." 15 65 --title "Whitelist values" 3>&1 1>&2 2>&3)
+     file_value=$(whiptail  --inputbox "\nPlease enter the values for the $compare_key one at a time.\n\nWhen finished type quit." 15 65 --title "Whitelist values" 3>&1 1>&2 2>&3)
           if [ ${file_value,,} = "quit" ] ; then
                  counter=1
           else
@@ -338,7 +508,10 @@ whitelist:
 EOF
 
 else
-    file_location=$(whiptail  --inputbox "Please enter the full path and filename of the whitelist." 15 65 --title "Whitelist File Location" 3>&1 1>&2 2>&3)
+    file_location=$(whiptail  --inputbox "\nPlease enter the full path AND filename of the whitelist." 15 65 --title "Whitelist File Location" 3>&1 1>&2 2>&3)
+    exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
 
             cat << EOF >> $rulename.yaml
 # (Required, whitelist)
@@ -347,16 +520,20 @@ whitelist:
     - "!file $file_location"
 
 EOF
- 
+    else
+	exit
+    fi 
 fi
 
-if (whiptail --yesno "Would you like to ignore null field values?" 10 50 --title "Whitelist Additional Options") then
+if (whiptail --yesno "\nWould you like to ignore null field values?" 10 50 --title "Whitelist Additional Options") then
+
 cat << EOF >> $rulename.yaml
 # (Required, whitelist)
 # ignore_null: If true, events without a compare_key field will not match.
 ignore_null: true
 
 EOF
+
 else
 
 cat <<EOF>> $rulename.yaml
@@ -373,9 +550,24 @@ fi
 ###################################
 frequency_rule_prompt()
 {
-num_events=$(whiptail  --inputbox "The Frequency rule matches when there are at least a certain number of events in a given timeframe.\n\nEnter the number of events you want to alert on:" 10 85 --title "Frequency Rule" 3>&1 1>&2 2>&3)
-timeframe_units=$(whiptail  --inputbox "The Cardinality Timeframe is defined as the number of unique values in the most recent X hours.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds"  15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+num_events=$(whiptail  --inputbox "\nThe Frequency rule matches when there are at least a certain number of events in a given timeframe.\n\nEnter the number of events you want to alert on:" 10 85 --title "Frequency Rule" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+    timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+        "\nThe Frequency timeframe is defined as the number of matches in the most recent X timeframe.\n\nPlease choose from the options below:\n\n" 20 80 6 \
+        "weeks" "Number of events per week.                 " ON \
+        "days" "Number of events per day.                   " OFF \
+        "hours" "Number of events per hour.                 " OFF \
+        "minutes" "Number of events per minute.             " OFF \
+        "seconds" "Number of events per second.             " OFF 3>&1 1>&2 2>&3)
+        exitstatus=$?
+	    if [ $exitstatus = 0 ] ; then
+
+	        timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+		exitstatus=$?
+
+		    if [ $exitstatus = 0 ] ; then
 
 cat << EOF >> $rulename.yaml
 
@@ -394,13 +586,26 @@ timeframe:
   $timeframe_units: $timeframe
 
 EOF
+		    else
+			exit
+		    fi
+	    else
+		exit
+	    fi
+    else
+	exit
+    fi
 
-if (whiptail --yesno "The frequency rule has the following additional options:\n -  use_count_query: \n -  use_terms_query: \n\n Would you like to set the optional settings?" 10 55 --title "Frequency Rule Additional Options") then
-    frequency_query_type=$(whiptail --title "Cardinality Rule Options" --radiolist \
+if (whiptail --yesno "\nThe frequency rule has the following additional options:\n -  use_count_query: \n -  use_terms_query: \n\n Would you like to set the optional settings?" 10 55 --title "Frequency Rule Additional Options") then
+    frequency_query_type=$(whiptail --title "Frequency Rule Options" --radiolist \
     "Please choose from the options below:" 15 100 4 \
     "use_count_query" "If true, ElastALert will poll Elasticsearch using the count api." ON \
     "use_terms_query" "If true, ElastAlert will make an aggregation query against Elasticsearch." OFF  3>&1 1>&2 2>&3)
-        if [ $frequency_query_type = "use_count_query" ] ; then
+    exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+
+	if [ $frequency_query_type = "use_count_query" ] ; then
             cat << EOF >> $rulename.yaml
 
 # Only count number of records, instead of bringing all data back
@@ -409,8 +614,14 @@ doc_type: 'doc'
 
 EOF
 	elif [ $frequency_query_type = "use_terms_query" ] ; then
-	    query_key=$(whiptail  --inputbox "Please enter the query_key." 15 65 --title "Frequency Rule Additional Options" 3>&1 1>&2 2>&3)
-	    term_size=$(whiptail --inputbox " The term_size is the maximum number of unique terms that will be returned.\n\nPlease enter the term_size, default is 50." 15 65 --title "Frequency Rule Additional Options" 3>&1 1>&2 2>&3)
+	    query_key=$(whiptail  --inputbox "\nPlease enter the query_key." 15 65 --title "Frequency Rule Additional Options" 3>&1 1>&2 2>&3)
+	    exitstatus=$?
+		
+	    if [ $exitstatus = 0 ] ; then
+                term_size=$(whiptail --inputbox "\nThe term_size is the maximum number of unique terms that will be returned.\n\nPlease enter the term_size, default is 50." 15 65 --title "Frequency Rule Additional Options" 3>&1 1>&2 2>&3)
+		exitstatus=$?
+ 
+		    if [ $exitstatus = 0 ] ; then
 
             cat << EOF >> $rulename.yaml
 # Only count number of records, instead of bringing all data back
@@ -424,7 +635,22 @@ query_key: $query_key
 terms_size: $term_size
 
 EOF
+		    else
+		        exit
+		    fi
+
+	    else
+	        exit
+
+	    fi
         fi
+    
+    else
+        exit
+    fi
+
+else
+    exit
 fi
 }
 
@@ -433,10 +659,29 @@ fi
 ################################
 change_rule_prompt()
 {
-compare_key=$(whiptail  --inputbox "The change rule will monitor a certain field and match if that field changes.\nThe field must change with respect to the last event with the same query_key.\n\nWhat field do you want to monitor for changes?" 15 75 --title "Change Rule Options" 3>&1 1>&2 2>&3)
-query_key=$(whiptail  --inputbox "The query_key parameter names the field that must be present in all of the events that are checked.\n\nPlease enter the query_key." 15 75 --title "Change Rule Options" 3>&1 1>&2 2>&3)
-timeframe_units=$(whiptail  --inputbox "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds"  15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+compare_key=$(whiptail  --inputbox "\nThe change rule will monitor a certain field and match if a value in that field changes.\nThe field must change with respect to the last event with the same query_key.\n\nWhat field do you want to monitor for changes?" 15 75 --title "Change Rule Options" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+	query_key=$(whiptail  --inputbox "\nThe query_key parameter names the field that must be present in all of the events that are checked.\n\nPlease enter the query_key." 15 75 --title "Change Rule Options" 3>&1 1>&2 2>&3)
+        exitstatus=$?
+
+        if [ $exitstatus = 0 ] ; then
+	    timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+            "\nThe change rule timeframe is the maximum time between changes. After this time period, ElastAlert will forget the old value of the compare_key field.\n\nPlease choose from the options below:\n\n" 20 80 6 \
+            "weeks" "Number of weeks between changes.                 " ON \
+            "days" "Number of days between changes.                   " OFF \
+            "hours" "Number of hours between changes.                 " OFF \
+            "minutes" "Number of minutes between changes.             " OFF \
+            "seconds" "Number of seconds between changes.             " OFF 3>&1 1>&2 2>&3)
+            exitstatus=$?
+
+            if [ $exitstatus = 0 ] ; then
+                timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+                exitstatus=$?
+
+                if [ $exitstatus = 0 ] ; then
+
     cat << EOF >> $rulename.yaml
 # (Required)
 # Type of alert.
@@ -461,7 +706,22 @@ timeframe:
   $timeframe_units: $timeframe
 
 EOF
+		else
+		    exit
+		fi
 
+	    else
+		exit
+	    fi
+    
+        else
+	    exit
+	fi
+
+    else
+	exit
+    fi
+	
 }
 
 ################################
@@ -469,15 +729,32 @@ EOF
 ################################
 spike_rule_prompt()
 {
-spike_height=$(whiptail  --inputbox "The spike rule matches when the volume of events during a given time period is spike_height times larger or smaller than during the previous time period. Note: This value is a multiple!!  2 = 2x as many; 5 = 5x as many\n\nWhat do you want the spike_type parameter to be?" 15 65 --title "Spike Rule Options" 3>&1 1>&2 2>&3)
+spike_height=$(whiptail  --inputbox "\nThe spike rule matches when the volume of events during a given time period is spike_height times larger or smaller than during the previous time period. Note: This value is a multiple!!  2 = 2x as many; 5 = 5x as many\n\nWhat do you want the spike_type parameter to be?" 15 90 --title "Spike Rule Options" 3>&1 1>&2 2>&3)
+exitstatus=$?
 
-spike_type=$(whiptail --title "Spike Rule Options" --radiolist \
-    "Please choose from the options below:" 15 65 4 \
-    "up" "more than previous timeframe." ON \
-    "down" "less than previous timeframe." OFF \
-    "both" "up and down." OFF 3>&1 1>&2 2>&3)
-timeframe_units=$(whiptail  --inputbox "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds"  15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+    if [ $exitstatus = 0 ] ; then
+    spike_type=$(whiptail --title "Spike Rule Options" --radiolist \
+        "\nPlease choose from the options below:    " 15 65 5 \
+        "up" "more than previous timeframe.         " ON \
+        "down" "less than previous timeframe.       " OFF \
+        "both" "up and down.                        " OFF 3>&1 1>&2 2>&3)
+        exitstatus=$?
+
+    	    if [ $exitstatus = 0 ] ; then
+            timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+            "\nThe spike rule will average out the rate of events over this time period.\n\nPlease choose from the options below:\n\n" 20 80 6 \
+            "weeks" "Number of weeks to average.                 " ON \
+            "days" "Number of days to average.                   " OFF \
+            "hours" "Number of hours to average.                 " OFF \
+            "minutes" "Number of minutes to average.             " OFF \
+            "seconds" "Number of seconds to average.             " OFF 3>&1 1>&2 2>&3)
+            exitstatus=$?
+
+                if [ $exitstatus = 0 ] ; then
+		    timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+		    exitstatus=$?
+
+            	    if [ $exitstatus = 0 ] ; then
     cat << EOF >> $rulename.yaml
 # (Required)
 # Type of alert.
@@ -498,6 +775,21 @@ timeframe:
   $timeframe_units: $timeframe
 
 EOF
+	            else
+		        exit
+	            fi
+
+		else
+		    exit
+		fi
+
+	    else
+		exit
+	    fi
+
+	else
+	    exit
+	fi
 
 if (whiptail --yesno "The spike rule has the following optional parameters:\n
  - field_value: When set, uses the value of the field in the document and not the number of matching documents.\n 
@@ -564,7 +856,10 @@ fi
 ###################################
 new_term_rule_prompt()
 {
-new_term_field=$(whiptail --inputbox "This rule matches when a new value appears in a field that has never been seen before. When ElastAlert starts, it will use an aggregation query to gather all known terms for a list of fields.\n\nWhat field do you want to monitor for new terms?" 15 85 --title "New Term Rule" 3>&1 1>&2 2>&3)
+new_term_field=$(whiptail --inputbox "\nThis rule matches when a new value appears in a field that has never been seen before. When ElastAlert starts, it will use an aggregation query to gather all known terms for a field.\n\nWhat field do you want to monitor for new terms?" 15 90 --title "New Term Rule" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
     cat << EOF >> $rulename.yaml
 # (Required)
 # Type of alert.
@@ -577,24 +872,44 @@ fields:
  - "$new_term_field"
 
 EOF
-
-if (whiptail --yesno "The new term rule has the following optional parameters:\n
+    else
+	exit
+    fi
+if (whiptail --yesno "\nThe new term rule has the following optional parameters:\n
  - terms_window_size: The amount of time used for the initial query to find existing terms. No term that has occurred within this time frame will trigger an alert. The default is 30 days.\n
  - window_step_size: When querying for existing terms, split up the time range into steps of this size. This is usefull when covering large timeframes\n
  - alert_on_missing_field: Whether or not to alert when a field is missing from a document. The default is false.\n\n
-Would you like to set any of these options?" 20 78 --title "New Term Rule Additional Options") then 
+Would you like to set any of these options?" 20 90 --title "New Term Rule Additional Options") then 
     counter=0
     while [ $counter -eq 0 ] ; do
         counter=$(( $counter + 1 ))
         new_term_additional_options=$(whiptail --title "Spike Rule Additional Options" --radiolist \
-        "Please choose from the options below:" 15 130 6 \
+        "\nPlease choose from the options below:" 15 130 6 \
         "terms_window_size" "The time used for the initial query to find existing terms." ON \
         "window_step_size" "Split up the time range into steps of this size." OFF \
         "alert_on_missing_field" "Whether or not to alert when a field is missing from a document" OFF \
         "finish" "Continue building the rule" OFF 3>&1 1>&2 2>&3)
-        if [ $new_term_additional_options = "terms_window_size" ] ; then
-	    timeframe_units=$(whiptail  --inputbox "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds"  15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-	    timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+	exitstatus=$?
+
+        if [ $exitstatus = 0 ] ; then
+            if [ $new_term_additional_options = "terms_window_size" ] ; then
+	        exitstatus=$?
+
+	        timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+            	"\nThe new term timeframe is the amount of time used for the initial query to find existing terms. Default is 30 Days\n\nPlease choose from the options below:\n\n" 20 80 6 \
+            	"weeks" "Number of weeks for initial query.          " ON \
+            	"days" "Number of days for intial query.             " OFF \
+            	"hours" "Number of hours for initial query.          " OFF \
+            	"minutes" "Number of minutes for initial query.      " OFF \
+            	"seconds" "Number of seconds for initial query.      " OFF 3>&1 1>&2 2>&3)
+            	exitstatus=$?
+
+                if [ $exitstatus = 0 ] ; then
+                    timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+                    exitstatus=$?
+
+		    if [ $exitstatus = 0 ] ; then
+
                 cat << EOF >> $rulename.yaml
 # (Optional, new_term specific)
 # This means that we will query 90 days worth of data when ElastAlert starts to find which values of ip_address already exist
@@ -603,11 +918,33 @@ terms_window_size:
   $timeframe_units: $timeframe
 
 EOF
-#Reset the while loop counter
-            counter=0
-	elif [ $new_term_additional_options = "window_step_size" ] ; then
-	    timeframe_units=$(whiptail  --inputbox "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds"  15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-            timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+		    else
+		        exit
+		    fi
+		    
+		else
+		    exit
+		fi
+#reset counter for while loop
+        counter=0
+    	    elif [ $new_term_additional_options = "window_step_size" ] ; then
+            exitstatus=$?
+
+                if [ $exitstatus = 0 ] ; then
+    	        timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+                "\nThe new term the window_step_size split up the time range into steps of this size.\n\nPlease choose from the options below:\n\n" 20 90 6 \
+                "weeks" "Number of weeks.          " ON \
+                "days" "Number of days.            " OFF \
+                "hours" "Number of hours.          " OFF \
+                "minutes" "Number of minutes.      " OFF \
+                "seconds" "Number of seconds.      " OFF 3>&1 1>&2 2>&3)
+                exitstatus=$?
+
+                    if [ $exitstatus = 0 ] ; then
+                        timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+                        exitstatus=$?
+
+                        if [ $exitstatus = 0 ] ; then
             cat << EOF >> $rulename.yaml
 
 # (Optional, new_term specific)
@@ -617,21 +954,41 @@ window_step_size:
   $timeframe_units: $timeframe
 
 EOF
-#Reset the while loop counter
-            counter=0
+		        else
+			    exit
+		        fi
+
+		    else
+		        exit
+		    fi
+
+	        else
+		    exit
+	        fi
+#reset counter for while loop
+	counter=0
 	elif [ $new_term_additional_options = "alert_on_missing_field" ] ; then
-	    alert_on_missing_field_option=$(whiptail  --inputbox "Please enter either true or false for the alert_on_missing_field." 15 65 --title "Missing Field Options" 3>&1 1>&2 2>&3)
-            cat << EOF >> $rulename.yaml
+	    alert_on_missing_field_option=$(whiptail  --inputbox "\nPlease enter either true or false for the alert_on_missing_field." 15 65 --title "Missing Field Options" 3>&1 1>&2 2>&3)
+            exitstatus=$?
+ 
+            if [ $exitstatus = 0 ] ; then
+	cat << EOF >> $rulename.yaml
 # (Optional, new_term specific)
 # Whether or not to alert when a field is missing from a document. The default is false.
 alert_on_missing_field: $alert_on_missing_field_option
 
 EOF
-#reset the while loop counter
-            counter=0
+	    else
+		exit
+	    fi
+
 	else
-	counter=1
+	    counter=1
 	fi
+    
+    else
+	exit
+    fi
    done
 fi
 }
@@ -642,9 +999,24 @@ fi
 ###################################
 flatline_rule_prompt()
 {
-threshold=$(whiptail  --inputbox "The flatline rule matches when the total number of events is under a given threshold for a time period.\n\nPlease enter the minimum threshold of events." 15 65 --title "Flatline Rule Options" 3>&1 1>&2 2>&3)
-timeframe_units=$(whiptail  --inputbox "The value of compare_key must change in two events that are less than the timeframe apart to trigger an alert.\n\nPlease choose from the following units of measure:\n  weeks, days, hours, minutes, or seconds"  15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
-timeframe=$(whiptail  --inputbox "Please enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+threshold=$(whiptail  --inputbox "\nThe flatline rule matches when the total number of events is under a given threshold for a certain peroid of time.\n\nPlease enter the minimum threshold of events." 15 65 --title "Flatline Rule Options" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+    if [ $exitstatus = 0 ] ; then
+    timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
+    "\nThe flat rule timeframe is the period that must contain less than threshold events.\n\nPlease choose from the options below:\n\n" 20 90 6 \
+    "weeks" "Number of weeks.          " ON \
+    "days" "Number of days.            " OFF \
+    "hours" "Number of hours.          " OFF \
+    "minutes" "Number of minutes.      " OFF \
+    "seconds" "Number of seconds.      " OFF 3>&1 1>&2 2>&3)
+    exitstatus=$?
+	if [ $exitstatus = 0 ] ; then
+        timeframe=$(whiptail  --inputbox "\nPlease enter the number of $timeframe_units you want to use." 15 65 --title "Timeframe Options" 3>&1 1>&2 2>&3)
+            exitstatus=$?
+
+            if [ $exitstatus = 0 ] ; then
+
     cat << EOF >> $rulename.yaml
 # (Required)
 # Type of alert.
@@ -661,20 +1033,33 @@ timeframe:
   $timeframe_units: $timeframe
 
 EOF
+	    else
+		exit
+	    fi
 
-if (whiptail --yesno "The flatline rule has the following optional parameters:\n  - use_count_query:If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents.\n - use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key.\n - terms_size: When used with use_terms_query, this is the maximum number of terms returned per query. Default is 50.\n - query_key: With flatline rule, query_key means that an alert will be triggered if any value of query_key has been seen at least once and then falls below the threshold.\n  - forget_keys: Only valid when used with query_key. If this is set to true, ElastAlert will “forget” about the query_key value that triggers an alert\n\nWould you like to set any of these parameters?" 25 78 --title "Flat line rule Options") then
+	else
+	    exit
+	fi
+
+    else
+	exit
+    fi
+if (whiptail --yesno "\nThe flatline rule has the following optional parameters:\n  - use_count_query:If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents.\n - use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key.\n - terms_size: When used with use_terms_query, this is the maximum number of terms returned per query. Default is 50.\n - query_key: With flatline rule, query_key means that an alert will be triggered if any value of query_key has been seen at least once and then falls below the threshold.\n  - forget_keys: Only valid when used with query_key. If this is set to true, ElastAlert will “forget” about the query_key value that triggers an alert\n\nWould you like to set any of these parameters?" 25 90 --title "Flat line rule Options") then
     counter=0
     while [ $counter -eq 0 ] ; do
         counter=$(( $counter + 1 ))
         flatline_option_select=$(whiptail --title "Flatline Rule Additional Options" --radiolist \
-        "Please choose from the options below:" 25 100 6 \
-        "use_count_query" "If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents." ON \
-        "use_terms_query" "If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key." OFF \
+        "\nPlease choose from the options below:" 25 110 6 \
+        "use_count_query" "If true, ElastAlert will poll  and not download all of the documents." ON \
+        "use_terms_query" "If true, ElastAlert will get counts of each unique value of query_key." OFF \
         "term_size" "The maximum number of terms returned per query. Default is 50." OFF \
         "finish" "Continue building the rule" OFF 3>&1 1>&2 2>&3)
 	    if [ $flatline_option_select = "use_count_query" ] ; then
-		use_count_query=$(whiptail  --inputbox "Please enter true or false for the use_count_query field." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
-		cat  << EOF >> $rulename.yaml
+	    use_count_query=$(whiptail  --inputbox "\nPlease enter true or false for the use_count_query field." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
+	    exitstatus=$?
+
+                if [ $exitstatus = 0 ] ; then
+	cat  << EOF >> $rulename.yaml
 
 # (Optional, flatline specific)
 # use_count_query: If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents.
@@ -682,14 +1067,26 @@ use_count_query: $use_count_query
 doc_type: 'doc'
 
 EOF
+	        else
+		    exit
+		fi
 #Reset counter for while loop
                 counter=0
 
 	    elif [ $flatline_option_select = "use_terms_query" ] ; then
-		use_terms_query=$(whiptail  --inputbox "Please enter true or false for the use_terms_query." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
-	        query_key=$(whiptail  --inputbox "Please enter the query_key field." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
-	 	forget_keys=$(whiptail  --inputbox "Please enter true of false for the forget_keys field." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
-                cat << EOF >> $rulename.yaml
+		use_terms_query=$(whiptail  --inputbox "\nPlease enter true or false for the use_terms_query." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
+		exitstatus=$?
+
+            	if [ $exitstatus = 0 ] ; then
+	            query_key=$(whiptail  --inputbox "\nPlease enter the query_key field." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
+	 	    exitstatus=$?
+
+            	    if [ $exitstatus = 0 ] ; then
+   	 	    forget_keys=$(whiptail  --inputbox "\nPlease enter true of false for the forget_keys field." 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
+  		    exitstatus=$?
+
+                        if [ $exitstatus = 0 ] ; then
+	 cat << EOF >> $rulename.yaml
 
 # (Optional, flatline specific)
 # Use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key."
@@ -704,18 +1101,36 @@ query_key: $query_key
 forget_keys: $forget_keys
 
 EOF
+			else
+			    exit
+			fi
+
+		    else
+			exit
+		    fi
+
+		else
+		    exit
+		fi
 #Reset counters for while loop
                 counter=0
 
 	    elif [ $flatline_option_select = "term_size" ] ; then
-		term_sizee=$(whiptail  --inputbox "Please enter the maximum number of terms returned per query,  Default is 50" 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
-                cat << EOF >> $rulename.yaml
+		term_sizee=$(whiptail  --inputbox "\nPlease enter the maximum number of terms returned per query,  Default is 50" 15 65 --title "Flatline Additional Options" 3>&1 1>&2 2>&3)
+		exitstatus=$?
+
+                if [ $exitstatus = 0 ] ; then
+
+	cat << EOF >> $rulename.yaml
 
 # (Optional, flatline specific)
 # When used with use_terms_query, this is the maximum number of terms returned per query. Default is 50.
 terms_size: $terms_size
 
 EOF
+		else
+		    exit
+		fi
 #Reset counters for while loop
                 counter=0
 
@@ -732,14 +1147,14 @@ fi
 
 function mainmenu() {
     rule_choice=$(whiptail --title "Main Menu" --fb --menu "Please choose the rule you want to create." 20 60 10 \
-        "1" "Cardinality rules" \
-        "2" "Blacklist rules" \
-        "3" "Whitelist rules" \
-	"4" "Frequency rules" \
-	"5" "Change rules" \
-	"6" "Spike rules" \
-	"7" "New Term rules" \
-	"8" "Flatline rules" 3>&1 1>&2 2>&3)
+        "1" "Cardinality rules      " \
+        "2" "Blacklist rules     " \
+        "3" "Whitelist rules     " \
+	"4" "Frequency rules     " \
+	"5" "Change rules     " \
+	"6" "Spike rules     " \
+	"7" "New Term rules     " \
+	"8" "Flatline rules     " 3>&1 1>&2 2>&3)
 
     case $rule_choice in
         1)
