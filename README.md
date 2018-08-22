@@ -1,17 +1,17 @@
 # so-elastalert-create
-This Script will walk you through creating elastalert rules. For best results, copy this script into the /usr/sbin/ directory and run in the folder containing the rules you want to test. 
+This script uses whiptail as a graphical interface that will walk you through creating basic elastalert rules.  Depending on the type of alert you are building, you may need to modify the rule and build a complex query. For best results, copy this script into the /usr/sbin/ directory and run in the folder containing the rules you want to test.
 
-# so-elastalert-create-whiptail
-This script uses whiptail as a GUI frontend to walk you through createing elastalert rules.
+For more information about elastalert check out the following link: https://elastalert.readthedocs.io
+
+This script uses NEWT_COLORS.  To manipulate the color scheme adjust the following section at the beging of the script.
+
+export NEWT_COLORS='
+window=,white
+border=white,red
+textbox=white
+button=white
+'
+Once the rule is created, move it to the rules_folder directory defined in the elastalert_config.yaml
+In Security Onion, the default rules_folder directory is /etc/elastalert/rules
 ![alt text](https://github.com/bryant-treacle/Repository_images/blob/master/so-elastalert-create-whiptail.PNG)
 
-I recommend that you mount a new volume to the Elastalert docker contaion to put the rules in to test prior to moving them the the /etc/elastalert/rules folder.
-
-Here is an example:
-Make a folder on the local filesystem to mount to the docker contation
-   - sudo mkdir /etc/elastalert/test_rules/
-Add the following options the the /etc/nsm/securityonion.conf file
-    - ELASTALERT_OPTIONS="--volume /etc/elastalert/test_rules:/etc/elastalert/test_rules:ro"
-Restart the Elastalert Docker container
-    - so-elastalert-restart
-You can also test the rule using the so-elastalert-test script to verify the rule is alerting as expected.
