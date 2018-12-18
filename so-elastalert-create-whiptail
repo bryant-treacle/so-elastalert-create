@@ -49,7 +49,8 @@ name: $rulename
 EOF
 
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 }
 
@@ -71,7 +72,8 @@ index: "$indexname"
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 }
 
@@ -108,7 +110,8 @@ slack:
 
 EOF
 	    else
-	        exit
+	        rm $rulename.yaml
+		mainmenu
 	    fi
 	elif [ ${alertoption,,} = "email" ] ; then
             emailoption=$(whiptail --inputbox "\nPlease enter the email address you want to send the alerts to.\nNote: Ensure the Master Server is configured for SMTP."  15 85 --title "Slack Alerter Option" 3>&1 1>&2 2>&3)
@@ -127,7 +130,8 @@ email:
  - $emailoption
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
 	elif [ ${alertoption,,} = "debug" ] ; then
         whiptail --title "debug Alerter Options"  --msgbox "\nUsing the default alert type of debug.\nAlerts will only be written to the *:elastalert_status* index." 10 90
@@ -142,11 +146,13 @@ alert:
 
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
         fi
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 }
 
@@ -182,14 +188,16 @@ filter:
 
 EOF
 		else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		fi
         elif [ ${filteroption,,} = "term" ] ; then
 	    field_name=$(whiptail --inputbox "\nThis option allows you to match a specific value in a field.\nFor example field name: source_ip field value: 192.168.1.1 or choose a specific log type you want to rule to apply ie. field name: event_type field value: bro_http \n\nWhat field do you want to filter on?" 15 90 --title "Term Filter Options" 3>&1 1>&2 2>&3)
 	    exitstatus=$?
 
 	        if [ $exitstatus = 1 ] ; then
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		else
 	    	    field_value=$(whiptail  --inputbox "\nWhat is the value for the $field_name field." 8 65 --title "Term Filter Options" 3>&1 1>&2 2>&3)
 			exitstatus=$?
@@ -207,7 +215,8 @@ filter:
 
 EOF
 			else
-			    exit
+			    rm $rulename.yaml
+			    mainmenu
 			fi
 		fi
         elif [ ${filteroption,,} = "wildcard" ] ; then
@@ -215,7 +224,8 @@ EOF
 	        exitstatus=$?
 
 	        if [ $exitstatus = 1 ] ; then
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 	        else
 	    field_value=$(whiptail  --inputbox "\nWhat is the value for the $field_name field." 10 65 --title "Wildcard Filter Options" 3>&1 1>&2 2>&3)
             cat << EOF >> $rulename.yaml
@@ -232,7 +242,8 @@ EOF
 		fi
 	fi
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 }
 
@@ -265,10 +276,12 @@ realert:
 
 EOF
             else
-	        exit
+	        rm $rulename.yaml
+		mainmenu
  	    fi
 	else
-	    exit
+	    rm $rulename.yaml
+	    mainmenu
 	fi
 fi
 }
@@ -304,7 +317,8 @@ cardinality_field: $cardinality_field
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 
 cardinality_max_min=$(whiptail --title "Cardinality Rule Options" --radiolist \
@@ -329,7 +343,8 @@ max_cardinality: $cardinality_max
 
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
 	elif [ $cardinality_max_min = "minimum_cardinality" ] ; then
         cardinality_min=$(whiptail  --inputbox "\nPlease enter the minimum cardinality value." 10 50 --title "Cardinality Rule Options" 3>&1 1>&2 2>&3)
@@ -344,11 +359,13 @@ min_cardinality: $cardinality_min
 
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
 	fi
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 
 timeframe_units=$(whiptail --title "Timefame Options" --radiolist \
@@ -375,10 +392,12 @@ timeframe:
 
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 
 if (whiptail --yesno "\nThe query_key groups counts by this field. For each unique value of the query_key field, cardinality will be counted separately.\n\nWould you like to set the query_key parameter?" 8 78 --title "Query Key Option") then
@@ -393,7 +412,8 @@ query_key: $query_key
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 fi
 
@@ -422,7 +442,8 @@ compare_key: $compare_key
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 if (whiptail --yesno "\nThe blacklist file should be a text file with a single value per line.  Note: The file needs to be accessible by the so-elastalert container.\n\nWould you like to create the file now?" 10 78 --title "Blacklist Option") then
      file_location=$(whiptail  --inputbox "\nPlease enter the full path AND filename of the blacklist.\n Note: The filepath will be defined in the $rulename.yaml file." 10 65 --title "Blacklist File Location" 3>&1 1>&2 2>&3)
@@ -459,7 +480,8 @@ blacklist:
 
 EOF
 	else
-	    exit
+	    rm $rulename.yaml
+	    mainmenu
 	fi
 fi
 }
@@ -486,7 +508,8 @@ compare_key: $compare_key
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 if (whiptail --yesno "\nThe whitelist file should be a text file with a single value per line.  Note: The file needs to be accessible by the so-elastalert container.\n\nWould you like to create the file now?" 10 78 --title "Whitelist Rule Option") then 
      file_location=$(whiptail  --inputbox "\nPlease enter the full path AND filename of the whitelist.\nNote: The file path will be placed in the $rulename.yaml file." 10 65 --title "Whitelist File Location" 3>&1 1>&2 2>&3)
@@ -523,7 +546,8 @@ whitelist:
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi 
 fi
 
@@ -589,13 +613,16 @@ timeframe:
 
 EOF
 		    else
-			exit
+			rm $rulename.yaml
+			mainmenu
 		    fi
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 
 if (whiptail --yesno "\nThe frequency rule has the following additional options:\n -  use_count_query: \n -  use_terms_query: \n\n Would you like to set the optional settings?" 10 55 --title "Frequency Rule Additional Options") then
@@ -638,21 +665,24 @@ terms_size: $term_size
 
 EOF
 		    else
-		        exit
+		        rm $rulename.yaml
+			mainmenu
 		    fi
 
 	    else
-	        exit
-
+	        rm $rulename.yaml
+		mainmenu
 	    fi
         fi
     
     else
-        exit
+        rm $rulename.yaml
+	mainmenu
     fi
 
 else
-    exit
+    rm $rulename.yaml
+    mainmenu
 fi
 }
 
@@ -709,19 +739,23 @@ timeframe:
 
 EOF
 		else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		fi
 
 	    else
-		exit
+		rm $rulename.yaml
+	        mainmenu
 	    fi
     
         else
-	    exit
+	    rm $rulename.yaml
+	    mainmenu
 	fi
 
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 	
 }
@@ -778,19 +812,23 @@ timeframe:
 
 EOF
 	            else
-		        exit
+		        rm $rulename.yaml
+			mainmenu
 	            fi
 
 		else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		fi
 
 	    else
-		exit
+		rm $rulename.yaml
+	        mainmenu
 	    fi
 
 	else
-	    exit
+	    rm $rulename.yaml
+	    mainmenu
 	fi
 
 if (whiptail --yesno "The spike rule has the following optional parameters:\n
@@ -875,7 +913,8 @@ fields:
 
 EOF
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 if (whiptail --yesno "\nThe new term rule has the following optional parameters:\n
  - terms_window_size: The amount of time used for the initial query to find existing terms. No term that has occurred within this time frame will trigger an alert. The default is 30 days.\n
@@ -921,11 +960,13 @@ terms_window_size:
 
 EOF
 		    else
-		        exit
+		        rm $rulename.yaml
+			mainmenu
 		    fi
 		    
 		else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		fi
 #reset counter for while loop
         counter=0
@@ -957,15 +998,18 @@ window_step_size:
 
 EOF
 		        else
-			    exit
+			    rm $rulename.yaml
+			    mainmenu
 		        fi
 
 		    else
-		        exit
+		        rm $rulename.yaml
+	     	        mainmenu
 		    fi
 
 	        else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 	        fi
 #reset counter for while loop
 	counter=0
@@ -981,7 +1025,8 @@ alert_on_missing_field: $alert_on_missing_field_option
 
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
 
 	else
@@ -989,7 +1034,8 @@ EOF
 	fi
     
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
    done
 fi
@@ -1036,15 +1082,18 @@ timeframe:
 
 EOF
 	    else
-		exit
+		rm $rulename.yaml
+		mainmenu
 	    fi
 
 	else
-	    exit
+	    rm $rulename.yaml
+	    mainmenu
 	fi
 
     else
-	exit
+	rm $rulename.yaml
+	mainmenu
     fi
 if (whiptail --yesno "\nThe flatline rule has the following optional parameters:\n  - use_count_query:If true, ElastAlert will poll Elasticsearch using the count api, and not download all of the matching documents.\n - use_terms_query: If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key.\n - terms_size: When used with use_terms_query, this is the maximum number of terms returned per query. Default is 50.\n - query_key: With flatline rule, query_key means that an alert will be triggered if any value of query_key has been seen at least once and then falls below the threshold.\n  - forget_keys: Only valid when used with query_key. If this is set to true, ElastAlert will “forget” about the query_key value that triggers an alert\n\nWould you like to set any of these parameters?" 25 90 --title "Flat line rule Options") then
     counter=0
@@ -1070,7 +1119,8 @@ doc_type: 'doc'
 
 EOF
 	        else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		fi
 #Reset counter for while loop
                 counter=0
@@ -1104,15 +1154,18 @@ forget_keys: $forget_keys
 
 EOF
 			else
-			    exit
+			    rm $rulename.yaml
+			    mainmenu
 			fi
 
 		    else
-			exit
+			rm $rulename.yaml
+			mainmenu
 		    fi
 
 		else
-		    exit
+		    rm $rulename.yaml
+	    	    mainmenu
 		fi
 #Reset counters for while loop
                 counter=0
@@ -1131,7 +1184,8 @@ terms_size: $terms_size
 
 EOF
 		else
-		    exit
+		    rm $rulename.yaml
+		    mainmenu
 		fi
 #Reset counters for while loop
                 counter=0
